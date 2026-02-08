@@ -1,12 +1,9 @@
-FROM golang
+FROM rust:slim-trixie
 
 WORKDIR /app
 
-COPY ./go.mod .
-COPY ./go.sum .
-
-RUN go mod download
-
 COPY . .
 
-CMD [ "go", "run", "main.go" ]
+RUN cargo build
+
+CMD ["cargo","run"]

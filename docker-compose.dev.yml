@@ -18,9 +18,17 @@ services:
     build:
       context: ./backend
       dockerfile: dockerfile
+    environment:
+      - DB_HOST=db
+      - DB_USER=tramits_user
+      - DB_PASSWORD=tramits_password
+      - DB_NAME=tramits_db
+      - DB_PORT=5432
     ports:
       - 6006:6006
-    command: go run main.go
+    volumes:
+      - ./backend/src:/app/src
+    command: cargo run
 
   db:
     image: postgres:17.6-alpine3.22
@@ -34,6 +42,6 @@ services:
       - db_data:/var/lib/postgresql/data
   
   cache:
-    image: redis
+    image: redis:8.4.0-bookworm
     ports:
       - 6379:6379
