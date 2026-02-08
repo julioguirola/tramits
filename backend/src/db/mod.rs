@@ -6,15 +6,9 @@ use fake::faker::name::en::{ FirstName, LastName };
 use fake::Fake;
 use crate::config::EnvConfig;
 
-struct DataBase {
-    db_host: String,
-    db_user: String,
-    db_password: String,
-    db_name: String,
-    db_port: String,
-}
+struct DataBase;
 
-async fn generar_oficinas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn _generar_oficinas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result = sqlx::query("select id from municipio;")
         .fetch_all(pool).await?;
     
@@ -42,7 +36,7 @@ async fn generar_oficinas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn generar_bodegas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn _generar_bodegas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result_ofics = sqlx::query("select id from oficina;")
         .fetch_all(pool).await?;
 
@@ -70,7 +64,7 @@ async fn generar_bodegas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn generar_nucleos (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn _generar_nucleos (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result_bodeg = sqlx::query("select id from bodega;")
         .fetch_all(pool).await?;
 
@@ -98,7 +92,7 @@ async fn generar_nucleos (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn generar_personas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn _generar_personas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result_nuc = sqlx::query("select id from nucleo;")
         .fetch_all(pool).await?;
 
@@ -154,10 +148,10 @@ impl DataBase {
         
             sqlx::raw_sql(&migration_query).execute(&pool).await?;
         
-            generar_oficinas(&pool).await?;
-            generar_bodegas(&pool).await?;
-            generar_nucleos(&pool).await?;
-            generar_personas(&pool).await?;
+            _generar_oficinas(&pool).await?;
+            _generar_bodegas(&pool).await?;
+            _generar_nucleos(&pool).await?;
+            _generar_personas(&pool).await?;
         }
 
         Ok(pool)

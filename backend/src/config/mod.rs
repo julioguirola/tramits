@@ -9,7 +9,7 @@ pub struct EnvConfig {
 }
 
 impl EnvConfig {
-    pub fn new (&self) -> EnvConfig {
+    pub fn new () -> EnvConfig {
         let db_host = env::var("DB_HOST").unwrap_or_else(|_| panic!("DB_HOST must be set"));
         let db_user = env::var("DB_USER").unwrap_or_else(|_| panic!("DB_USER must be set"));
         let db_password = env::var("DB_PASSWORD").unwrap_or_else(|_| panic!("DB_PASSWORD must be set"));
