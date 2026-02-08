@@ -1,9 +1,18 @@
-use std::{env, fs};
+use std::{ fs };
 use sqlx::{ Pool, Postgres, Row, postgres::PgPoolOptions};
 use rand;
 use fake::faker::address::en::{ CityName, StreetName, StreetSuffix };
 use fake::faker::name::en::{ FirstName, LastName };
 use fake::Fake;
+use crate::config::EnvConfig;
+
+struct DataBase {
+    db_host: String,
+    db_user: String,
+    db_password: String,
+    db_name: String,
+    db_port: String,
+}
 
 async fn generar_oficinas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result = sqlx::query("select id from municipio;")
@@ -125,28 +134,32 @@ async fn generar_personas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-pub async fn init_db(migrate: bool) -> Result<Pool<Postgres>, sqlx::Error> {
-    let db_host = env::var("DB_HOST").unwrap_or_else(|_| panic!("DB_HOST must be set"));
-    let db_user = env::var("DB_USER").unwrap_or_else(|_| panic!("DB_USER must be set"));
-    let db_password = env::var("DB_PASSWORD").unwrap_or_else(|_| panic!("DB_PASSWORD must be set"));
-    let db_name = env::var("DB_NAME").unwrap_or_else(|_| panic!("DB_NAME must be set"));
-    let db_port = env::var("DB_PORT").unwrap_or_else(|_| panic!("DB_PORT must be set"));
-    let database_url = format!("postgres://{}:{}@{}:{}/{}", db_user, db_password, db_host, db_port, db_name);
+impl DataBase {
+    pub async fn new(config: &EnvConfig, migrate: bool) -> Result<Pool<Postgres>, sqlx::Error> {
+        let database_url = format!(
+            "postgres://{}:{}@{}:{}/{}",
+            config.db_user,
+            config.db_password,
+            config.db_host,
+            config.db_port,
+            config.db_name,
+        );
 
-    let pool = PgPoolOptions::new()
-        .max_connections(10)
-        .connect(&database_url).await?;
+        let pool = PgPoolOptions::new()
+            .max_connections(10)
+            .connect(&database_url).await?;
 
-    if migrate {
-        let migration_query = fs::read_to_string("src/db/migration.sql")?;
-    
-        sqlx::raw_sql(&migration_query).execute(&pool).await?;
-    
-        generar_oficinas(&pool).await?;
-        generar_bodegas(&pool).await?;
-        generar_nucleos(&pool).await?;
-        generar_personas(&pool).await?;
+        if migrate {
+            let migration_query = fs::read_to_string("src/db/migration.sql")?;
+        
+            sqlx::raw_sql(&migration_query).execute(&pool).await?;
+        
+            generar_oficinas(&pool).await?;
+            generar_bodegas(&pool).await?;
+            generar_nucleos(&pool).await?;
+            generar_personas(&pool).await?;
+        }
+
+        Ok(pool)
     }
-
-    Ok(pool)
 }

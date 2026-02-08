@@ -24,6 +24,7 @@ services:
       - DB_PASSWORD=tramits_password
       - DB_NAME=tramits_db
       - DB_PORT=5432
+      - ENVIRONMENT=dev
     ports:
       - 6006:6006
     volumes:
