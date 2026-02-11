@@ -6,7 +6,7 @@ use fake::faker::name::en::{ FirstName, LastName };
 use fake::Fake;
 use crate::config::EnvConfig;
 
-struct DataBase;
+pub struct DataBase;
 
 async fn _generar_oficinas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result = sqlx::query("select id from municipio;")
