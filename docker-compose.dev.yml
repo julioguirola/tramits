@@ -25,6 +25,7 @@ services:
       - DB_NAME=tramits_db
       - DB_PORT=5432
       - ENVIRONMENT=dev
+      - RUST_LOG=TRACE
     ports:
       - 6006:6006
     volumes:

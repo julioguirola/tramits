@@ -1,19 +1,16 @@
-use std::{ fs };
-use sqlx::{ Pool, Postgres, Row, postgres::PgPoolOptions};
-use rand;
-use fake::faker::address::en::{ CityName, StreetName, StreetSuffix };
-use fake::faker::name::en::{ FirstName, LastName };
-use fake::Fake;
 use crate::config::EnvConfig;
+use fake::Fake;
+use fake::faker::address::en::{CityName, StreetName, StreetSuffix};
+use fake::faker::name::en::{FirstName, LastName};
+use sqlx::{Pool, Postgres, Row, postgres::PgPoolOptions};
+use std::fs;
 
-pub struct DataBase;
-
-async fn _generar_oficinas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result = sqlx::query("select id from municipio;")
-        .fetch_all(pool).await?;
-    
-    let ids: Vec<i32> = result.iter()
-        .map(|r| r.get::<i32,_>("id")).collect();
+        .fetch_all(pool)
+        .await?;
+
+    let ids: Vec<i32> = result.iter().map(|r| r.get::<i32, _>("id")).collect();
 
     let mut inserts = String::from("");
 
@@ -36,12 +33,12 @@ async fn _generar_oficinas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn _generar_bodegas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn generar_bodegas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result_ofics = sqlx::query("select id from oficina;")
-        .fetch_all(pool).await?;
+        .fetch_all(pool)
+        .await?;
 
-    let ids_ofics: Vec<i32> = result_ofics.iter()
-        .map(|r| r.get::<i32,_>("id")).collect();
+    let ids_ofics: Vec<i32> = result_ofics.iter().map(|r| r.get::<i32, _>("id")).collect();
 
     let mut inserts = String::from("");
 
@@ -64,12 +61,12 @@ async fn _generar_bodegas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn _generar_nucleos (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn generar_nucleos(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result_bodeg = sqlx::query("select id from bodega;")
-        .fetch_all(pool).await?;
+        .fetch_all(pool)
+        .await?;
 
-    let ids_bodeg: Vec<i32> = result_bodeg.iter()
-        .map(|r| r.get::<i32,_>("id")).collect();
+    let ids_bodeg: Vec<i32> = result_bodeg.iter().map(|r| r.get::<i32, _>("id")).collect();
 
     let mut inserts = String::from("");
 
@@ -79,7 +76,8 @@ async fn _generar_nucleos (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
         for _ in 0..cant_nucleos {
             inserts += &format!(
                 "insert into nucleo (direccion, bodega_id) values ('{}', {});\n",
-                (StreetName().fake::<String>() + " " + &StreetSuffix().fake::<String>() + " st.").replace("'", " "),
+                (StreetName().fake::<String>() + " " + &StreetSuffix().fake::<String>() + " st.")
+                    .replace("'", " "),
                 id,
             );
         }
@@ -92,12 +90,12 @@ async fn _generar_nucleos (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn _generar_personas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+async fn generar_personas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result_nuc = sqlx::query("select id from nucleo;")
-        .fetch_all(pool).await?;
+        .fetch_all(pool)
+        .await?;
 
-    let ids_nuc: Vec<i32> = result_nuc.iter()
-        .map(|r| r.get::<i32,_>("id")).collect();
+    let ids_nuc: Vec<i32> = result_nuc.iter().map(|r| r.get::<i32, _>("id")).collect();
 
     let mut inserts = String::from("");
 
@@ -106,17 +104,14 @@ async fn _generar_personas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
 
         for _ in 0..cant_personas {
             inserts += &format!(
-                "insert into persona (nombre, apellido, nucleo_id, carnet) values ('{}', '{}', {}, '{}');\n",
+                "insert into persona (nombre, apellido, nucleo_id, carnet) values ('{}', '{}', {}, '{:02}{:02}{:02}{}');\n",
                 FirstName().fake::<String>().replace("'", " "),
                 LastName().fake::<String>().replace("'", " "),
                 id,
-                format!(
-                    "{:02}{:02}{:02}{}",
-                    rand::random_range::<u16, _>(0..=99),
-                    rand::random_range::<u16, _>(1..=12),
-                    rand::random_range::<u16, _>(1..=31),
-                    rand::random_range::<u32, _>(10000..=99999),
-                ),
+                rand::random_range::<u16, _>(0..=99),
+                rand::random_range::<u16, _>(1..=12),
+                rand::random_range::<u16, _>(1..=31),
+                rand::random_range::<u32, _>(10000..=99999),
             )
         }
     }
@@ -128,32 +123,27 @@ async fn _generar_personas (pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-impl DataBase {
-    pub async fn new(config: &EnvConfig, migrate: bool) -> Result<Pool<Postgres>, sqlx::Error> {
-        let database_url = format!(
-            "postgres://{}:{}@{}:{}/{}",
-            config.db_user,
-            config.db_password,
-            config.db_host,
-            config.db_port,
-            config.db_name,
-        );
+pub async fn init_db(config: &EnvConfig, migrate: bool) -> Result<Pool<Postgres>, sqlx::Error> {
+    let database_url = format!(
+        "postgres://{}:{}@{}:{}/{}",
+        config.db_user, config.db_password, config.db_host, config.db_port, config.db_name,
+    );
 
-        let pool = PgPoolOptions::new()
-            .max_connections(10)
-            .connect(&database_url).await?;
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&database_url)
+        .await?;
 
-        if migrate {
-            let migration_query = fs::read_to_string("src/db/migration.sql")?;
-        
-            sqlx::raw_sql(&migration_query).execute(&pool).await?;
-        
-            _generar_oficinas(&pool).await?;
-            _generar_bodegas(&pool).await?;
-            _generar_nucleos(&pool).await?;
-            _generar_personas(&pool).await?;
-        }
+    if migrate {
+        let migration_query = fs::read_to_string("src/db/migration.sql")?;
 
-        Ok(pool)
+        sqlx::raw_sql(&migration_query).execute(&pool).await?;
+
+        generar_oficinas(&pool).await?;
+        generar_bodegas(&pool).await?;
+        generar_nucleos(&pool).await?;
+        generar_personas(&pool).await?;
     }
+
+    Ok(pool)
 }
