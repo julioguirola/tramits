@@ -12,6 +12,7 @@ services:
       - ./frontend/public:/app/public
       - ./frontend/vite.config.ts:/app/vite.config.ts
       - ./frontend/components.json:/app/components.json
+      - ./frontend/index.html:/app/index.html
     command: bun run dev
   
   backend:

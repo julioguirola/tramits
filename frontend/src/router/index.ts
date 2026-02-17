@@ -1,15 +1,19 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import App from "@/App.vue"
-import Ruta from "@/Ruta.vue"
+import { createRouter, createWebHistory } from "vue-router";
+import Login from "@/Login.vue";
+import Register from "@/Register.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/ruta',
-      component: Ruta
+      path: "/login",
+      component: Login,
+    },
+    {
+      path: "/register",
+      component: Register,
     },
   ],
-})
+});
 
-export default router
+export default router;

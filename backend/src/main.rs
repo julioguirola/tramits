@@ -3,9 +3,10 @@ use std::sync::Arc;
 use axum::{
     Router,
     extract::Request,
+    http::HeaderValue,
     middleware::{self, Next},
     response::Response,
-    routing::post,
+    routing::{get, post},
 };
 
 mod config;
@@ -26,29 +27,48 @@ struct AppState {
     db: Pool<Postgres>,
 }
 
-async fn middle(req: Request, next: Next) -> Response {
-    warn!("Request a: {} {}", req.method(), req.uri());
+async fn logger_m(req: Request, next: Next) -> Response {
+    warn!("{} {}", req.method(), req.uri());
     next.run(req).await
+}
+
+async fn cors_m(req: Request, next: Next) -> Response {
+    let mut response = next.run(req).await;
+
+    let headers = response.headers_mut();
+    headers.insert("Access-Control-Allow-Origin", HeaderValue::from_static("*"));
+    headers.insert(
+        "Access-Control-Allow-Methods",
+        HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS"),
+    );
+    headers.insert(
+        "Access-Control-Allow-Headers",
+        HeaderValue::from_static("*"),
+    );
+
+    response
 }
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error> {
-    let config = EnvConfig::new();
-    let db = db::init_db(&config, false).await?;
-
-    let env_config = Arc::new(config);
-
-    let shared_state = Arc::new(AppState { env_config, db });
-
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(EnvFilter::from_default_env())
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
+    let config = EnvConfig::new();
+    let db = db::init_db(&config, false).await?;
+
+    let shared_state = Arc::new(AppState {
+        env_config: Arc::new(config),
+        db,
+    });
 
     let routes = Router::new()
         .route("/usuario", post(usuario::crear_usuario_h))
-        .layer(middleware::from_fn(middle))
+        .route("/", get(|| async { "Hello World!" }))
+        .layer(middleware::from_fn(logger_m))
+        .layer(middleware::from_fn(cors_m))
         .with_state(shared_state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:6006").await.unwrap();
