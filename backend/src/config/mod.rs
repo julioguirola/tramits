@@ -6,6 +6,7 @@ pub struct EnvConfig {
     pub db_password: String,
     pub db_name: String,
     pub db_port: String,
+    pub port: String,
     pub environment: String,
 }
 
@@ -17,6 +18,7 @@ impl EnvConfig {
             env::var("DB_PASSWORD").unwrap_or_else(|_| panic!("DB_PASSWORD must be set"));
         let db_name = env::var("DB_NAME").unwrap_or_else(|_| panic!("DB_NAME must be set"));
         let db_port = env::var("DB_PORT").unwrap_or_else(|_| panic!("DB_PORT must be set"));
+        let port = env::var("PORT").unwrap_or_else(|_| panic!("PORT must be set"));
         let environment =
             env::var("ENVIRONMENT").unwrap_or_else(|_| panic!("ENVIRONMENT must be set"));
 
@@ -26,6 +28,7 @@ impl EnvConfig {
             db_password,
             db_name,
             db_port,
+            port,
             environment,
         }
     }

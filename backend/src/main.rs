@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Router,
     extract::Request,
-    http::HeaderValue,
+    http::{HeaderValue, header},
     middleware::{self, Next},
     response::Response,
     routing::{get, post},
@@ -36,13 +36,16 @@ async fn cors_m(req: Request, next: Next) -> Response {
     let mut response = next.run(req).await;
 
     let headers = response.headers_mut();
-    headers.insert("Access-Control-Allow-Origin", HeaderValue::from_static("*"));
     headers.insert(
-        "Access-Control-Allow-Methods",
+        header::ACCESS_CONTROL_ALLOW_ORIGIN,
+        HeaderValue::from_static("http://localhost:5173"),
+    );
+    headers.insert(
+        header::ACCESS_CONTROL_ALLOW_METHODS,
         HeaderValue::from_static("GET, POST, PUT, DELETE, OPTIONS"),
     );
     headers.insert(
-        "Access-Control-Allow-Headers",
+        header::ACCESS_CONTROL_ALLOW_HEADERS,
         HeaderValue::from_static("*"),
     );
 
@@ -63,15 +66,18 @@ async fn main() -> Result<(), sqlx::Error> {
         env_config: Arc::new(config),
         db,
     });
+    let state_port = shared_state.clone();
 
     let routes = Router::new()
-        .route("/usuario", post(usuario::crear_usuario_h))
         .route("/", get(|| async { "Hello World!" }))
+        .route("/usuario", post(usuario::crear_usuario_h))
         .layer(middleware::from_fn(logger_m))
         .layer(middleware::from_fn(cors_m))
         .with_state(shared_state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:6006").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", state_port.env_config.port))
+        .await
+        .unwrap();
     axum::serve(listener, routes).await.unwrap();
     Ok(())
 }

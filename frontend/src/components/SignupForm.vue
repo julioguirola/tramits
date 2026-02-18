@@ -1,4 +1,4 @@
-<script setup lang="ts">
+<script lang="ts">
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,6 +14,41 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { api } from "@/lib/utils";
+export default {
+  components: {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+    Input,
+    Button,
+  },
+  data() {
+    return {
+      email: "",
+      pass_word: "",
+      pass_word_c: "",
+    };
+  },
+  methods: {
+    async submit(e: Event) {
+      e.preventDefault();
+      const res = (
+        await api.post("/usuario", {
+          email: this.email,
+          pass_word: this.pass_word,
+        })
+      ).data;
+      return;
+    },
+  },
+};
 </script>
 
 <template>
@@ -34,6 +69,7 @@ import { Input } from "@/components/ui/input";
               type="email"
               placeholder="m@example.com"
               required
+              v-model="email"
             />
             <FieldDescription>
               Usaremos esta información para contactarte. No compartiremos tu
@@ -42,7 +78,7 @@ import { Input } from "@/components/ui/input";
           </Field>
           <Field>
             <FieldLabel for="password"> Contraseña </FieldLabel>
-            <Input id="password" type="password" required />
+            <Input id="password" type="password" required v-model="pass_word" />
             <FieldDescription
               >Debe tener al menos 8 caracteres.</FieldDescription
             >
@@ -51,16 +87,22 @@ import { Input } from "@/components/ui/input";
             <FieldLabel for="confirm-password">
               Confirmar Contraseña
             </FieldLabel>
-            <Input id="confirm-password" type="password" required />
+            <Input
+              id="confirm-password"
+              type="password"
+              required
+              v-model="pass_word_c"
+            />
             <FieldDescription
               >Por favor confirme su contraseña.</FieldDescription
             >
           </Field>
           <FieldGroup>
             <Field>
-              <Button type="submit"> Crear Cuenta </Button>
+              <Button @click="submit"> Crear Cuenta </Button>
               <FieldDescription class="px-6 text-center">
-                ¿Ya tienes una cuenta? <a href="#">Iniciar sesión</a>
+                ¿Ya tienes una cuenta?
+                <RouterLink to="/">Iniciar sesión</RouterLink>
               </FieldDescription>
             </Field>
           </FieldGroup>

@@ -8,7 +8,5 @@ export default {
 </script>
 
 <template>
-  <div class="w-93.75">
-    <SignupForm />
-  </div>
+  <SignupForm />
 </template>
