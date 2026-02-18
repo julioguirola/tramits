@@ -1,5 +1,6 @@
 use std::env;
-
+pub mod cors;
+pub mod logger;
 pub struct EnvConfig {
     pub db_host: String,
     pub db_user: String,
@@ -7,6 +8,7 @@ pub struct EnvConfig {
     pub db_name: String,
     pub db_port: String,
     pub port: String,
+    pub spa_url: String,
     pub environment: String,
 }
 
@@ -19,6 +21,7 @@ impl EnvConfig {
         let db_name = env::var("DB_NAME").unwrap_or_else(|_| panic!("DB_NAME must be set"));
         let db_port = env::var("DB_PORT").unwrap_or_else(|_| panic!("DB_PORT must be set"));
         let port = env::var("PORT").unwrap_or_else(|_| panic!("PORT must be set"));
+        let spa_url = env::var("SPA_URL").unwrap_or_else(|_| panic!("SPA_URL must be set"));
         let environment =
             env::var("ENVIRONMENT").unwrap_or_else(|_| panic!("ENVIRONMENT must be set"));
 
@@ -29,6 +32,7 @@ impl EnvConfig {
             db_name,
             db_port,
             port,
+            spa_url,
             environment,
         }
     }

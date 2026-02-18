@@ -30,6 +30,7 @@ services:
       - ENVIRONMENT=dev
       - RUST_LOG=TRACE
       - PORT=3030
+      - SPA_URL=http://localhost:5173
     ports:
       - 3030:3030
     volumes:
