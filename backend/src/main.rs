@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use axum::{
     Router,
+    body::Body,
     extract::Request,
-    http::{HeaderValue, header},
+    http::{HeaderValue, Method, StatusCode, header},
     middleware::{self, Next},
     response::Response,
-    routing::{get, post},
+    routing::{any, get, post},
 };
 
 mod config;
@@ -33,12 +34,24 @@ async fn logger_m(req: Request, next: Next) -> Response {
 }
 
 async fn cors_m(req: Request, next: Next) -> Response {
+    if req.method() == Method::OPTIONS {
+        return Response::builder()
+            .status(StatusCode::NO_CONTENT)
+            .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+            .header(
+                header::ACCESS_CONTROL_ALLOW_METHODS,
+                "GET, POST, PUT, DELETE, OPTIONS",
+            )
+            .header(header::ACCESS_CONTROL_ALLOW_HEADERS, "*")
+            .body(Body::empty())
+            .unwrap();
+    }
     let mut response = next.run(req).await;
 
     let headers = response.headers_mut();
     headers.insert(
         header::ACCESS_CONTROL_ALLOW_ORIGIN,
-        HeaderValue::from_static("http://localhost:5173"),
+        HeaderValue::from_static("*"),
     );
     headers.insert(
         header::ACCESS_CONTROL_ALLOW_METHODS,
@@ -71,6 +84,7 @@ async fn main() -> Result<(), sqlx::Error> {
     let routes = Router::new()
         .route("/", get(|| async { "Hello World!" }))
         .route("/usuario", post(usuario::crear_usuario_h))
+        .route("/{*path}", any(|| async { StatusCode::NO_CONTENT }))
         .layer(middleware::from_fn(logger_m))
         .layer(middleware::from_fn(cors_m))
         .with_state(shared_state);

@@ -6,7 +6,7 @@ services:
       context: ./frontend
       dockerfile: dockerfile
     environment:
-      - VITE_API_URL=http://localhost:6006
+      - VITE_API_URL=http://localhost:3030
     ports:
       - 5173:5173
     volumes:
