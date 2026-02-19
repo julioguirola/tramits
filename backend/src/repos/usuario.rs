@@ -5,7 +5,7 @@ use argon2::{
 use sqlx::{Error, Pool, Postgres, types::Uuid};
 use tracing::error;
 pub async fn crear_usuario(
-    db: Pool<Postgres>,
+    db: &Pool<Postgres>,
     email: &String,
     pass_word: &String,
     persona_id: &Uuid,
@@ -22,7 +22,7 @@ pub async fn crear_usuario(
         .bind(email)
         .bind(hash)
         .bind(persona_id)
-        .execute(&db)
+        .execute(db)
         .await
         .map_err(|e| {
             error!("{}", e);

@@ -13,7 +13,7 @@ use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CrearUsuarioDto {
-    #[validate(email(message = "Email no valido"))]
+    #[validate(email(message = "Email no válido"))]
     email: String,
     #[validate(length(min = 1, message = "Campo requerido"))]
     pass_word: String,
@@ -27,10 +27,13 @@ pub async fn crear_usuario_h(
 ) -> impl IntoResponse {
     let validado = body.validate();
 
-    if let Err(e) = validado {
+    if let Err(e) = validado
+        && let Some((_, value)) = e.field_errors().iter().next()
+        && let Some(m) = value.iter().next()
+    {
         return (
             StatusCode::BAD_REQUEST,
-            Js(json!({"errores": e.field_errors() })),
+            Js(json!({"message":"Error", "description": m.message })),
         );
     }
 
@@ -39,22 +42,21 @@ pub async fn crear_usuario_h(
         Err(_) => {
             return (
                 StatusCode::BAD_REQUEST,
-                Js(json!({"mensaje": "persona_id debe ser un uuid valido"})),
+                Js(json!({"message":"Error", "description": "persona_id debe ser un uuid valido"})),
             );
         }
     };
 
-    let r =
-        usuario::crear_usuario(estado.db.clone(), &body.email, &body.pass_word, &persona_id).await;
+    let r = usuario::crear_usuario(&estado.db, &body.email, &body.pass_word, &persona_id).await;
 
     match r {
         Ok(_) => (
             StatusCode::CREATED,
-            Js(json!({"mensaje": "Usuario creado"})),
+            Js(json!({"message":"Éxito", "description": "Usuario creado"})),
         ),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Js(json!({"mensaje": "Error creando usuario"})),
+            Js(json!({"message":"Error", "description": "Error creando usuario"})),
         ),
     }
 }

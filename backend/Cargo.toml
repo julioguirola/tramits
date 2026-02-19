@@ -16,3 +16,4 @@ serde_json = "1.0.149"
 validator = { version = "0.19", features = ["derive"] }
 validator_derive = "0.20.0"
 argon2 = "0.5.3"
+uuid = {version = "1.21.0", features = ["v4", "serde"]}

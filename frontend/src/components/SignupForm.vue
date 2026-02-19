@@ -1,5 +1,7 @@
 <script lang="ts">
 import { Button } from "@/components/ui/button";
+import { toast } from "vue-sonner";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Card,
   CardContent,
@@ -14,7 +16,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { api } from "@/lib/utils";
+import { api, toast_trigger } from "@/lib/utils";
 export default {
   components: {
     Card,
@@ -28,12 +30,16 @@ export default {
     FieldLabel,
     Input,
     Button,
+    Spinner,
   },
   data() {
     return {
       email: "",
+      carnet: "",
       pass_word: "",
       pass_word_c: "",
+      persona: null,
+      loading_verificar: false,
     };
   },
   methods: {
@@ -46,6 +52,26 @@ export default {
         })
       ).data;
       return;
+    },
+    async verificar_carnet(e: Event) {
+      e.preventDefault();
+      this.loading_verificar = true;
+      try {
+        const res = (
+          await api.get("/persona", {
+            params: { carnet: this.carnet },
+          })
+        ).data;
+        toast_trigger(res);
+        this.persona = res.data[0];
+      } catch (e: any) {
+        const res = e.response.data;
+        if (res) {
+          toast_trigger(res);
+        }
+      } finally {
+        this.loading_verificar = false;
+      }
     },
   },
 };
@@ -62,6 +88,23 @@ export default {
     <CardContent>
       <form>
         <FieldGroup>
+          <div class="flex gap-4">
+            <Field>
+              <FieldLabel for="carnet"> Carnet </FieldLabel>
+              <Input
+                id="carnet"
+                type="text"
+                placeholder="03090660960"
+                required
+                v-model="carnet"
+              />
+            </Field>
+            <Button @click="verificar_carnet" class="self-end">
+              <Spinner v-if="loading_verificar" />
+              {{ loading_verificar ? "" : "Verificar" }}
+            </Button>
+          </div>
+          <p>{{ persona }}</p>
           <Field>
             <FieldLabel for="email"> Email </FieldLabel>
             <Input

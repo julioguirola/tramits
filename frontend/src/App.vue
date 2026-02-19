@@ -1,7 +1,12 @@
 <script lang="ts">
+import "vue-sonner/style.css";
+import { Toaster } from "vue-sonner";
 import { api } from "./lib/utils";
 
 export default {
+  components: {
+    Toaster,
+  },
   data() {
     return {
       name: "",
@@ -14,7 +19,8 @@ export default {
 </script>
 
 <template>
-  {{ name }}
+  <!-- {{ name }} -->
+  <Toaster />
   <RouterView />
 </template>
 
