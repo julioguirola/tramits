@@ -9,31 +9,77 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::types::Uuid;
 use std::sync::Arc;
-use validator::Validate;
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize)]
 pub struct CrearUsuarioDto {
-    #[validate(email(message = "Email no válido"))]
     email: String,
-    #[validate(length(min = 1, message = "Campo requerido"))]
     pass_word: String,
-    #[validate(length(min = 1, message = "Campo requerido"))]
     persona_id: String,
+}
+
+fn is_valid_email(email: &str) -> bool {
+    if email.len() < 3 {
+        return false;
+    }
+
+    let parts: Vec<&str> = email.split('@').collect();
+    if parts.len() != 2 {
+        return false;
+    }
+
+    let local = parts[0];
+    let domain = parts[1];
+
+    if local.is_empty() {
+        return false;
+    }
+
+    if !domain.contains('.') || domain.starts_with('.') || domain.ends_with('.') {
+        return false;
+    }
+
+    if domain.is_empty() || domain.contains("..") {
+        return false;
+    }
+
+    let valid_local_chars = |c: char| c.is_alphanumeric() || "!#$%&'*+/=?^_`{|}~.-".contains(c);
+    if !local.chars().all(valid_local_chars) {
+        return false;
+    }
+
+    if local.starts_with('.') || local.ends_with('.') {
+        return false;
+    }
+
+    let valid_domain_chars = |c: char| c.is_alphanumeric() || c == '-' || c == '.';
+    if !domain.chars().all(valid_domain_chars) {
+        return false;
+    }
+
+    let tld = domain.split('.').last().unwrap_or("");
+    if tld.len() < 2 {
+        return false;
+    }
+    true
 }
 
 pub async fn crear_usuario_h(
     State(estado): State<Arc<AppState>>,
     Json(body): Json<CrearUsuarioDto>,
 ) -> impl IntoResponse {
-    let validado = body.validate();
-
-    if let Err(e) = validado
-        && let Some((_, value)) = e.field_errors().iter().next()
-        && let Some(m) = value.iter().next()
-    {
+    if !is_valid_email(&body.email) {
         return (
             StatusCode::BAD_REQUEST,
-            Js(json!({"message":"Error", "description": m.message })),
+            Js(json!({"message":"Error", "description": "Email inválido"})),
+        );
+    }
+
+    if body.pass_word.len() < 8 {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(
+                json!({"message":"Error", "description": "La contraseña debe tener 8 o mas caracteres"}),
+            ),
         );
     }
 
@@ -42,7 +88,7 @@ pub async fn crear_usuario_h(
         Err(_) => {
             return (
                 StatusCode::BAD_REQUEST,
-                Js(json!({"message":"Error", "description": "persona_id debe ser un uuid valido"})),
+                Js(json!({"message":"Error", "description": "Persona_id debe ser un uuid valido"})),
             );
         }
     };
@@ -54,9 +100,21 @@ pub async fn crear_usuario_h(
             StatusCode::CREATED,
             Js(json!({"message":"Éxito", "description": "Usuario creado"})),
         ),
-        Err(_) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Js(json!({"message":"Error", "description": "Error creando usuario"})),
-        ),
+        Err(e) => {
+            if let sqlx::Error::Database(db_err) = &e
+                && db_err.is_unique_violation()
+            {
+                return (
+                    StatusCode::CONFLICT,
+                    Js(
+                        json!({"message":"Error", "description": "Ya existe un usuario con ese email"}),
+                    ),
+                );
+            }
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!({"message":"Error", "description": "Error creando usuario"})),
+            )
+        }
     }
 }

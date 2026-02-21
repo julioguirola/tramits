@@ -1,7 +1,7 @@
 use axum::{extract::Request, middleware::Next, response::Response};
-use tracing::warn;
+use tracing::info;
 
 pub async fn logger_m(req: Request, next: Next) -> Response {
-    warn!("{} {}", req.method(), req.uri());
+    info!("{} {}", req.method(), req.uri());
     next.run(req).await
 }
