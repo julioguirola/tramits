@@ -1,4 +1,4 @@
-use crate::{AppState, repos::usuario};
+use crate::{AppState, config::tipos::Ress, repos::usuario};
 use axum::{
     Json,
     extract::State,
@@ -15,6 +15,12 @@ pub struct CrearUsuarioDto {
     email: String,
     pass_word: String,
     persona_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct LoginUsuarioDto {
+    email: String,
+    pass_word: String,
 }
 
 fn is_valid_email(email: &str) -> bool {
@@ -56,7 +62,7 @@ fn is_valid_email(email: &str) -> bool {
         return false;
     }
 
-    let tld = domain.split('.').last().unwrap_or("");
+    let tld = domain.split('.').next_back().unwrap_or("");
     if tld.len() < 2 {
         return false;
     }
@@ -117,4 +123,25 @@ pub async fn crear_usuario_h(
             )
         }
     }
+}
+
+pub async fn login_usuario_h(Json(body): Json<LoginUsuarioDto>) -> impl IntoResponse {
+    if body.email.is_empty() || body.pass_word.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(json!(Ress::<u32> {
+                message: "sdf",
+                description: "sdf",
+                data: None
+            })),
+        );
+    }
+    (
+        StatusCode::BAD_REQUEST,
+        Js(json!(Ress::<u32> {
+            message: "sdf",
+            description: "sdf",
+            data: None
+        })),
+    )
 }

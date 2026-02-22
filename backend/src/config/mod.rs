@@ -1,6 +1,7 @@
 use std::env;
 pub mod cors;
 pub mod logger;
+pub mod tipos;
 pub struct EnvConfig {
     pub db_host: String,
     pub db_user: String,
