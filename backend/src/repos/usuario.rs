@@ -1,5 +1,5 @@
 use argon2::{
-    Argon2, PasswordHasher,
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
 use sqlx::{Error, Pool, Postgres, types::Uuid};
@@ -30,4 +30,28 @@ pub async fn crear_usuario(
         })?;
 
     Ok(())
+}
+
+pub async fn login_usuario(
+    email: &String,
+    pass_word: &String,
+    db: &Pool<Postgres>,
+) -> Result<bool, Error> {
+    let result: String = sqlx::query_scalar("select pass_word from usuario where email = $1;")
+        .bind(email)
+        .fetch_one(db)
+        .await
+        .map_err(|e| {
+            error!("{}", e);
+            e
+        })?;
+
+    let parsed_hash = PasswordHash::new(&result).map_err(|e| {
+        error!("Error hasheando contraseña: {}", e);
+        Error::Protocol(e.to_string())
+    })?;
+
+    Ok(Argon2::default()
+        .verify_password(pass_word.as_bytes(), &parsed_hash)
+        .is_ok())
 }

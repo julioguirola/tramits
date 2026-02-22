@@ -14,6 +14,8 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { api, toast_trigger } from "@/lib/utils";
+import router from "@/router";
 import { RouterLink } from "vue-router";
 export default {
   components: {
@@ -33,13 +35,36 @@ export default {
   data(): {
     email: string;
     pass_word: string;
+    loading_iniciar: boolean;
   } {
     return {
       email: "",
       pass_word: "",
+      loading_iniciar: false,
     };
   },
-  mounted() {},
+  methods: {
+    async submit() {
+      try {
+        this.loading_iniciar = true;
+        const res = (
+          await api.post("/login", {
+            email: this.email,
+            pass_word: this.pass_word,
+          })
+        ).data;
+        toast_trigger(res);
+        router.push("/dashboard");
+      } catch (e: any) {
+        const res = e.response.data;
+        if (res) {
+          toast_trigger(res);
+        }
+      } finally {
+        this.loading_iniciar = false;
+      }
+    },
+  },
 };
 </script>
 
@@ -84,7 +109,12 @@ export default {
             />
           </Field>
           <Field>
-            <Button> Iniciar sesión </Button>
+            <Button
+              :disabled="!email || !pass_word || loading_iniciar"
+              @click="submit"
+            >
+              Iniciar sesión
+            </Button>
             <FieldDescription class="text-center">
               ¿No tienes una cuenta?
               <RouterLink to="/register">Regístrate</RouterLink>

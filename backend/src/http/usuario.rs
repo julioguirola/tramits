@@ -1,4 +1,8 @@
-use crate::{AppState, config::tipos::Ress, repos::usuario};
+use crate::{
+    AppState,
+    config::tipos::Ress,
+    repos::usuario::{self, login_usuario},
+};
 use axum::{
     Json,
     extract::State,
@@ -125,23 +129,51 @@ pub async fn crear_usuario_h(
     }
 }
 
-pub async fn login_usuario_h(Json(body): Json<LoginUsuarioDto>) -> impl IntoResponse {
+pub async fn login_usuario_h(
+    State(state): State<Arc<AppState>>,
+    Json(body): Json<LoginUsuarioDto>,
+) -> impl IntoResponse {
     if body.email.is_empty() || body.pass_word.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
             Js(json!(Ress::<u32> {
-                message: "sdf",
-                description: "sdf",
+                message: "Error",
+                description: "Complete los campos",
                 data: None
             })),
         );
     }
-    (
-        StatusCode::BAD_REQUEST,
-        Js(json!(Ress::<u32> {
-            message: "sdf",
-            description: "sdf",
-            data: None
-        })),
-    )
+    let verificacion = login_usuario(&body.email, &body.pass_word, &state.db).await;
+
+    match verificacion {
+        Ok(v) => {
+            if v {
+                (
+                    StatusCode::OK,
+                    Js(json!(Ress::<u8> {
+                        message: "Éxito",
+                        description: "Ha iniciado sesión correctamente",
+                        data: None
+                    })),
+                )
+            } else {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Js(json!(Ress::<u8> {
+                        message: "Error",
+                        description: "Nombre de usuario o contraseña incorrectos",
+                        data: None
+                    })),
+                )
+            }
+        }
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Js(json!(Ress::<u8> {
+                message: "Error",
+                description: "Error comprobando credenciales",
+                data: None
+            })),
+        ),
+    }
 }

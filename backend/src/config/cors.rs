@@ -31,7 +31,7 @@ pub async fn cors_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
     let headers = response.headers_mut();
     headers.insert(
         header::ACCESS_CONTROL_ALLOW_ORIGIN,
-        HeaderValue::from_static("*"),
+        HeaderValue::from_str(&estado.env_config.spa_url).expect("Invalid Header Value"),
     );
     headers.insert(
         header::ACCESS_CONTROL_ALLOW_METHODS,

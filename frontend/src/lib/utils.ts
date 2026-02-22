@@ -25,13 +25,13 @@ export function toast_trigger(res: any) {
       toast.success(Respuesta.Success, { description: res.description });
       break;
     case Respuesta.Error:
-      toast.success(Respuesta.Error, { description: res.description });
+      toast.error(Respuesta.Error, { description: res.description });
       break;
     case Respuesta.Warn:
-      toast.success(Respuesta.Warn, { description: res.description });
+      toast.warning(Respuesta.Warn, { description: res.description });
       break;
     case Respuesta.Info:
-      toast.success(Respuesta.Info, { description: res.description });
+      toast.info(Respuesta.Info, { description: res.description });
       break;
     default:
       toast.error(Respuesta.Error, { description: res });

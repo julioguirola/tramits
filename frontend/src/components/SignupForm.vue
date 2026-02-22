@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { api, toast_trigger } from "@/lib/utils";
 import PersonaCard from "@/components/PersonaCard.vue";
+import router from "@/router";
 export default {
   components: {
     Card,
@@ -77,6 +78,7 @@ export default {
           })
         ).data;
         toast_trigger(res);
+        router.push("/dashboard");
       } catch (e: any) {
         const res = e.response.data;
         if (res) {
