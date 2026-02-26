@@ -2,8 +2,35 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
-use sqlx::{Error, Pool, Postgres, types::Uuid};
+
+use sqlx::{Error, Pool, Postgres, prelude::FromRow, types::Uuid};
 use tracing::error;
+
+use hmac::{Hmac, Mac};
+use jwt::{Error as JwtError, SignWithKey};
+
+use serde::Serialize;
+use sha2::Sha256;
+
+#[derive(Serialize)]
+pub struct UsuarioJwt<'a> {
+    sub: &'a String,
+    email: &'a String,
+}
+
+#[derive(Serialize, FromRow)]
+pub struct Usuario {
+    id: String,
+    pass_word: String,
+}
+
+fn jwt(claim: &UsuarioJwt, secret: &String) -> Result<String, JwtError> {
+    let key: Hmac<Sha256> =
+        Hmac::new_from_slice(secret.as_bytes()).map_err(|_| JwtError::InvalidSignature)?;
+
+    claim.sign_with_key(&key)
+}
+
 pub async fn crear_usuario(
     db: &Pool<Postgres>,
     email: &String,
@@ -36,22 +63,41 @@ pub async fn login_usuario(
     email: &String,
     pass_word: &String,
     db: &Pool<Postgres>,
-) -> Result<bool, Error> {
-    let result: String = sqlx::query_scalar("select pass_word from usuario where email = $1;")
-        .bind(email)
-        .fetch_one(db)
-        .await
-        .map_err(|e| {
-            error!("{}", e);
-            e
-        })?;
+    secret: &String,
+) -> Result<(String, bool), Error> {
+    let result =
+        sqlx::query_as::<_, Usuario>("select id, pass_word from usuario where email = $1;")
+            .bind(email)
+            .fetch_one(db)
+            .await
+            .map_err(|e| {
+                error!("{}", e);
+                e
+            })?;
 
-    let parsed_hash = PasswordHash::new(&result).map_err(|e| {
-        error!("Error hasheando contraseña: {}", e);
+    let parsed_hash = PasswordHash::new(&result.pass_word).map_err(|e| {
+        error!("Error hasheando contraseña: {}", e.to_string());
         Error::Protocol(e.to_string())
     })?;
 
-    Ok(Argon2::default()
+    if Argon2::default()
         .verify_password(pass_word.as_bytes(), &parsed_hash)
-        .is_ok())
+        .is_ok()
+    {
+        match jwt(
+            &UsuarioJwt {
+                sub: &result.id,
+                email,
+            },
+            secret,
+        ) {
+            Ok(s) => Ok((s, true)),
+            Err(e) => {
+                error!("{}", e);
+                Err(Error::Protocol(e.to_string()))
+            }
+        }
+    } else {
+        Ok((String::default(), false))
+    }
 }

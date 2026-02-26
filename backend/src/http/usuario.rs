@@ -6,8 +6,8 @@ use crate::{
 use axum::{
     Json,
     extract::State,
-    http::StatusCode,
-    response::{IntoResponse, Json as Js},
+    http::{StatusCode, header::SET_COOKIE},
+    response::{IntoResponse, Json as Js, Response},
 };
 use serde::Deserialize;
 use serde_json::json;
@@ -15,16 +15,10 @@ use sqlx::types::Uuid;
 use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
-pub struct CrearUsuarioDto {
+pub struct UsuarioDto {
     email: String,
     pass_word: String,
-    persona_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct LoginUsuarioDto {
-    email: String,
-    pass_word: String,
+    persona_id: Option<String>,
 }
 
 fn is_valid_email(email: &str) -> bool {
@@ -75,7 +69,7 @@ fn is_valid_email(email: &str) -> bool {
 
 pub async fn crear_usuario_h(
     State(estado): State<Arc<AppState>>,
-    Json(body): Json<CrearUsuarioDto>,
+    Json(body): Json<UsuarioDto>,
 ) -> impl IntoResponse {
     if !is_valid_email(&body.email) {
         return (
@@ -93,7 +87,14 @@ pub async fn crear_usuario_h(
         );
     }
 
-    let persona_id = match Uuid::parse_str(&body.persona_id) {
+    if !&body.persona_id.is_some() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(json!({"message":"Error", "description": "Persona_id debe ser un uuid valido"})),
+        );
+    }
+
+    let persona_id = match Uuid::parse_str(&body.persona_id.unwrap()) {
         Ok(v) => v,
         Err(_) => {
             return (
@@ -131,8 +132,8 @@ pub async fn crear_usuario_h(
 
 pub async fn login_usuario_h(
     State(state): State<Arc<AppState>>,
-    Json(body): Json<LoginUsuarioDto>,
-) -> impl IntoResponse {
+    Json(body): Json<UsuarioDto>,
+) -> Response {
     if body.email.is_empty() || body.pass_word.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
@@ -141,21 +142,30 @@ pub async fn login_usuario_h(
                 description: "Complete los campos",
                 data: None
             })),
-        );
+        )
+            .into_response();
     }
-    let verificacion = login_usuario(&body.email, &body.pass_word, &state.db).await;
+    let verificacion = login_usuario(
+        &body.email,
+        &body.pass_word,
+        &state.db,
+        &state.env_config.jwt_secret,
+    )
+    .await;
 
     match verificacion {
-        Ok(v) => {
+        Ok((token, v)) => {
             if v {
                 (
                     StatusCode::OK,
+                    [(SET_COOKIE, token)],
                     Js(json!(Ress::<u8> {
                         message: "Éxito",
                         description: "Ha iniciado sesión correctamente",
                         data: None
                     })),
                 )
+                    .into_response()
             } else {
                 (
                     StatusCode::UNAUTHORIZED,
@@ -165,6 +175,7 @@ pub async fn login_usuario_h(
                         data: None
                     })),
                 )
+                    .into_response()
             }
         }
         Err(_) => (
@@ -174,6 +185,7 @@ pub async fn login_usuario_h(
                 description: "Error comprobando credenciales",
                 data: None
             })),
-        ),
+        )
+            .into_response(),
     }
 }

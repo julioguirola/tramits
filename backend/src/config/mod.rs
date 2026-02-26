@@ -11,6 +11,7 @@ pub struct EnvConfig {
     pub port: String,
     pub spa_url: String,
     pub environment: String,
+    pub jwt_secret: String,
 }
 
 impl EnvConfig {
@@ -23,6 +24,8 @@ impl EnvConfig {
         let db_port = env::var("DB_PORT").unwrap_or_else(|_| panic!("DB_PORT must be set"));
         let port = env::var("PORT").unwrap_or_else(|_| panic!("PORT must be set"));
         let spa_url = env::var("SPA_URL").unwrap_or_else(|_| panic!("SPA_URL must be set"));
+        let jwt_secret =
+            env::var("JWT_SECRET").unwrap_or_else(|_| panic!("JWT_SECRET must be set"));
         let environment =
             env::var("ENVIRONMENT").unwrap_or_else(|_| panic!("ENVIRONMENT must be set"));
 
@@ -35,6 +38,7 @@ impl EnvConfig {
             port,
             spa_url,
             environment,
+            jwt_secret,
         }
     }
 }
