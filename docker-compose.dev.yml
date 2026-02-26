@@ -6,7 +6,7 @@ services:
       context: ./frontend
       dockerfile: dockerfile
     environment:
-      - VITE_API_URL=http://localhost:3030/api
+      - VITE_API_URL=http://34.60.213.207:3030/api
     ports:
       - 5173:5173
     volumes:
@@ -30,7 +30,7 @@ services:
       - ENVIRONMENT=dev
       - RUST_LOG=TRACE
       - PORT=3030
-      - SPA_URL=http://localhost:5173
+      - SPA_URL=http://34.60.213.207:5173
       - JWT_SECRET=aG9sYS1_taS1ub21@#icmUtZ-XMtan/VsaW8tcS10YWx*sYS1sb2Nvb29vb29vb29vb29vbwo=
     ports:
       - 3030:3030
