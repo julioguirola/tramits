@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
@@ -14,17 +16,19 @@ use sha2::Sha256;
 
 #[derive(Serialize)]
 pub struct UsuarioJwt<'a> {
-    sub: &'a String,
-    email: &'a String,
+    sub: &'a Uuid,
+    email: &'a str,
+    iat: u64,
+    exp: u64,
 }
 
 #[derive(Serialize, FromRow)]
 pub struct Usuario {
-    id: String,
+    id: Uuid,
     pass_word: String,
 }
 
-fn jwt(claim: &UsuarioJwt, secret: &String) -> Result<String, JwtError> {
+fn jwt(claim: &UsuarioJwt, secret: &str) -> Result<String, JwtError> {
     let key: Hmac<Sha256> =
         Hmac::new_from_slice(secret.as_bytes()).map_err(|_| JwtError::InvalidSignature)?;
 
@@ -60,10 +64,10 @@ pub async fn crear_usuario(
 }
 
 pub async fn login_usuario(
-    email: &String,
-    pass_word: &String,
+    email: &str,
+    pass_word: &str,
     db: &Pool<Postgres>,
-    secret: &String,
+    secret: &str,
 ) -> Result<(String, bool), Error> {
     let result =
         sqlx::query_as::<_, Usuario>("select id, pass_word from usuario where email = $1;")
@@ -88,6 +92,11 @@ pub async fn login_usuario(
             &UsuarioJwt {
                 sub: &result.id,
                 email,
+                iat: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs(),
+                exp: 10,
             },
             secret,
         ) {

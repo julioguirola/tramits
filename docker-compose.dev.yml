@@ -31,7 +31,7 @@ services:
       - RUST_LOG=TRACE
       - PORT=3030
       - SPA_URL=http://localhost:5173
-      - JWT_SECRET=jr0DCqNu0sbZlhDZ7HgyFQdRjeKWIVxJ0zAWF9jtFX5nFIQn4p/x4hVQ1M3ZrxPr
+      - JWT_SECRET=aG9sYS1_taS1ub21@#icmUtZ-XMtan/VsaW8tcS10YWx*sYS1sb2Nvb29vb29vb29vb29vbwo=
     ports:
       - 3030:3030
     volumes:

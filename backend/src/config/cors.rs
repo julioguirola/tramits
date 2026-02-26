@@ -22,7 +22,8 @@ pub async fn cors_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
                 header::ACCESS_CONTROL_ALLOW_METHODS,
                 "GET, POST, PUT, DELETE, OPTIONS",
             )
-            .header(header::ACCESS_CONTROL_ALLOW_HEADERS, "*")
+            .header(header::ACCESS_CONTROL_ALLOW_HEADERS, "content-type")
+            .header(header::ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
             .body(Body::empty())
             .unwrap();
     }
@@ -39,7 +40,11 @@ pub async fn cors_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
     );
     headers.insert(
         header::ACCESS_CONTROL_ALLOW_HEADERS,
-        HeaderValue::from_static("*"),
+        HeaderValue::from_static("content-type"),
+    );
+    headers.insert(
+        header::ACCESS_CONTROL_ALLOW_CREDENTIALS,
+        HeaderValue::from_static("true"),
     );
 
     response

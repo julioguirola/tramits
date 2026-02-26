@@ -158,7 +158,13 @@ pub async fn login_usuario_h(
             if v {
                 (
                     StatusCode::OK,
-                    [(SET_COOKIE, token)],
+                    [(
+                        SET_COOKIE,
+                        format!(
+                            "TRAMITS_TOKEN={}; Path=/; HttpOnly; SameSite=Lax; Max-Age={}",
+                            token, 3600
+                        ),
+                    )],
                     Js(json!(Ress::<u8> {
                         message: "Éxito",
                         description: "Ha iniciado sesión correctamente",
