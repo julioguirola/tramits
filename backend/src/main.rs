@@ -31,7 +31,7 @@ async fn main() -> Result<(), sqlx::Error> {
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
     let config = EnvConfig::new();
-    let db = db::init_db(&config, false).await?;
+    let db = db::init_db(&config, true).await?;
 
     let shared_state = Arc::new(AppState {
         env_config: Arc::new(config),
