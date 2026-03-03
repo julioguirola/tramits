@@ -1,1 +1,8 @@
 frontend/node_modules
+.env
+.env.example
+.env.prod
+.gitignore
+.docker-compose.dev.yml
+.docker-compose.prod.yml
+RFs.md

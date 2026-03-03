@@ -5,3 +5,4 @@ node_modules
 .dockerignore
 dockerfile
 Dockerfile
+dist

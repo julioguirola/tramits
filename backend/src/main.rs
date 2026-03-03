@@ -31,7 +31,7 @@ async fn main() -> Result<(), sqlx::Error> {
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
     let config = EnvConfig::new();
-    let db = db::init_db(&config, true).await?;
+    let db = db::init_db(&config, false).await?;
 
     let shared_state = Arc::new(AppState {
         env_config: Arc::new(config),
@@ -39,14 +39,11 @@ async fn main() -> Result<(), sqlx::Error> {
     });
     let state_clone = shared_state.clone();
 
-    let api_routes = Router::new()
+    let routes = Router::new()
         .route("/", get(|| async { "Hello World!" }))
         .route("/usuario", post(usuario::crear_usuario_h))
         .route("/persona", get(persona::get_personas_h))
-        .route("/login", post(usuario::login_usuario_h));
-
-    let routes = Router::new()
-        .nest("/api", api_routes)
+        .route("/login", post(usuario::login_usuario_h))
         .route("/{*path}", any(|| async { StatusCode::NO_CONTENT }))
         .layer(middleware::from_fn(logger_m))
         .layer(middleware::from_fn_with_state(shared_state.clone(), cors_m))
