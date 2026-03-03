@@ -20,7 +20,7 @@ services:
       - PORT=${PORT}
       - SPA_URL=${SPA_URL}
       - JWT_SECRET=${JWT_SECRET}
-    prots:
+    ports:
       - 3030:3030
   
   db:
