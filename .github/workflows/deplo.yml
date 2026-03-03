@@ -9,19 +9,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - 
-        name: Add server to known_hosts
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan -H ${{ vars.DOMAIN }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-      - 
-        name: Deploy via SSH
-        run: |
-          echo ${{ secrets.VM_SSH_KEY }} > ssh.key
-          chmod 600 ./ssh.key
-          ssh -i ./ssh.key opc@${{ vars.DOMAIN }} "ls -a"
-          ssh -i ./ssh.key opc@${{ vars.DOMAIN }} "ls -a"
       -
         name: Checkout code
         uses: actions/checkout@v4
@@ -52,6 +39,13 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: julioguirola/tramits-backend:latest
-      
+      - 
+        name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.DOMAIN }}
+          username: opc
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: sudo docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
           
         
