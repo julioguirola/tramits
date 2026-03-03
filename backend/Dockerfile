@@ -7,10 +7,10 @@ COPY src ./src
 
 RUN cargo build --release
 
-# FROM debian:trixie-slim
+FROM debian:trixie-slim
 
-# WORKDIR /app
+WORKDIR /app
 
-# COPY --from=builder /app/target/release/backend ./backend
+COPY --from=builder /app/target/release/backend ./backend
 
-CMD ["./target/release/backend"]
+CMD ["./backend"] 
