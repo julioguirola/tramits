@@ -53,8 +53,3 @@ services:
     image: redis:8.4.0-bookworm
     ports:
       - 6377:6379
-
-  nginx:
-    image: nginx:trixie-perl
-    ports:
-      - 8000:80
