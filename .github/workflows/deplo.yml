@@ -21,6 +21,7 @@ jobs:
           echo ${{ secrets.VM_SSH_KEY }} > ssh.key
           chmod 600 ./ssh.key
           ssh -i ./ssh.key opc@${{ vars.DOMAIN }} "ls -a"
+          ssh -i ./ssh.key opc@${{ vars.DOMAIN }} "ls -a"
       -
         name: Checkout code
         uses: actions/checkout@v4
