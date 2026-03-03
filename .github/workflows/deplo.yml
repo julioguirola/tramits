@@ -46,6 +46,8 @@ jobs:
           host: ${{ vars.DOMAIN }}
           username: opc
           key: ${{ secrets.VM_SSH_KEY }}
-          script: sudo docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+          script: |
+            sudo docker compose -f ./docker-compose.prod.yml --env-file .env.prod down
+            sudo docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
           
         
