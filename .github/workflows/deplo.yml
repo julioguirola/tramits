@@ -10,9 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
-        name: debug
-        run: echo ${{ secrets.VM_SSH_KEY }}
-      -
         name: Checkout code
         uses: actions/checkout@v4
       -
