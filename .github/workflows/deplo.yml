@@ -47,7 +47,9 @@ jobs:
           username: opc
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+            cd /home/opc/tramits
+            git pull origin master
             sudo docker compose -f ./docker-compose.prod.yml --env-file .env.prod down
-            sudo docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+            sudo docker compose -f ,/docker-compose.prod.yml --env-file .env.prod up -d
           
         
