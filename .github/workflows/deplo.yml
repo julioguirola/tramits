@@ -40,6 +40,12 @@ jobs:
           push: true
           tags: julioguirola/tramits-backend:latest
       - 
+        name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ vars.DOMAIN }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+      - 
         name: Deploy via SSH
         run: |
           echo ${{ secrets.VM_SSH_KEY }} > ssh.key
