@@ -41,15 +41,18 @@ async fn main() -> Result<(), sqlx::Error> {
     });
     let state_clone = shared_state.clone();
 
+    let routes_auth = Router::new()
+        .route("/persona", get(persona::get_personas_h))
+        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
+
     let routes = Router::new()
         .route("/", get(|| async { "Hello World!" }))
         .route("/usuario", post(usuario::crear_usuario_h))
-        .route("/persona", get(persona::get_personas_h))
         .route("/login", post(usuario::login_usuario_h))
         .route("/{*path}", any(|| async { StatusCode::NO_CONTENT }))
-        .layer(middleware::from_fn(logger_m))
+        .merge(routes_auth)
         .layer(middleware::from_fn_with_state(shared_state.clone(), cors_m))
-        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m))
+        .layer(middleware::from_fn(logger_m))
         .with_state(shared_state);
 
     let listener =

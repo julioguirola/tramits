@@ -138,7 +138,7 @@ pub async fn login_usuario_h(
         return (
             StatusCode::BAD_REQUEST,
             Js(json!(Ress::<u32> {
-                message: Respuesta::Error,
+                message: Respuesta::Error.as_str(),
                 description: "Complete los campos",
                 data: None
             })),
@@ -166,7 +166,7 @@ pub async fn login_usuario_h(
                         ),
                     )],
                     Js(json!(Ress::<u8> {
-                        message: Respuesta::Success,
+                        message: Respuesta::Success.as_str(),
                         description: "Ha iniciado sesión correctamente",
                         data: None
                     })),
@@ -176,7 +176,7 @@ pub async fn login_usuario_h(
                 (
                     StatusCode::UNAUTHORIZED,
                     Js(json!(Ress::<u8> {
-                        message: Respuesta::Error,
+                        message: Respuesta::Error.as_str(),
                         description: "Nombre de usuario o contraseña incorrectos",
                         data: None
                     })),
@@ -187,7 +187,7 @@ pub async fn login_usuario_h(
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Js(json!(Ress::<u8> {
-                message: Respuesta::Error,
+                message: Respuesta::Error.as_str(),
                 description: "Error comprobando credenciales",
                 data: None
             })),

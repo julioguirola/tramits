@@ -1,6 +1,7 @@
 use crate::{
     AppState,
     config::tipos::{Respuesta, Ress},
+    repos::usuario::UsuarioJwt,
 };
 use axum::{
     Json,
@@ -13,13 +14,13 @@ use hmac::{Hmac, Mac};
 use jwt::VerifyWithKey;
 use serde_json::json;
 use sha2::Sha256;
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 fn forbidden() -> Response {
     (
         StatusCode::FORBIDDEN,
         Json(json!(Ress::<u8> {
-            message: Respuesta::Info,
+            message: Respuesta::Info.as_str(),
             description: "Usuario no autenticado",
             data: None,
         })),
@@ -42,7 +43,7 @@ pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
 
     let key: Hmac<Sha256> = Hmac::new_from_slice(estado.env_config.jwt_secret.as_bytes()).unwrap();
 
-    let claim: Result<HashMap<String, String>, _> = token.verify_with_key(&key);
+    let claim: Result<UsuarioJwt, _> = token.verify_with_key(&key);
 
     if claim.is_err() {
         return forbidden();

@@ -9,7 +9,6 @@ pub enum Respuesta {
 }
 
 impl Respuesta {
-    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             Respuesta::Success => "Éxito",
@@ -22,7 +21,7 @@ impl Respuesta {
 
 #[derive(Serialize)]
 pub struct Ress<T> {
-    pub message: Respuesta,
+    pub message: &'static str,
     pub description: &'static str,
     pub data: Option<T>,
 }

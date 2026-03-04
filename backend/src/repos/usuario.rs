@@ -11,13 +11,13 @@ use tracing::error;
 use hmac::{Hmac, Mac};
 use jwt::{Error as JwtError, SignWithKey};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-#[derive(Serialize)]
-pub struct UsuarioJwt<'a> {
-    sub: &'a Uuid,
-    email: &'a str,
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UsuarioJwt {
+    sub: Uuid,
+    email: String,
     iat: u64,
     exp: u64,
 }
@@ -90,8 +90,8 @@ pub async fn login_usuario(
     {
         match jwt(
             &UsuarioJwt {
-                sub: &result.id,
-                email,
+                sub: result.id,
+                email: String::from(email),
                 iat: SystemTime::now()
                     .duration_since(UNIX_EPOCH)
                     .unwrap()
