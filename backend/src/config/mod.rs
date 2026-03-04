@@ -1,4 +1,5 @@
 use std::env;
+pub mod auth;
 pub mod cors;
 pub mod logger;
 pub mod tipos;

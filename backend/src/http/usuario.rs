@@ -1,6 +1,6 @@
 use crate::{
     AppState,
-    config::tipos::Ress,
+    config::tipos::{Respuesta, Ress},
     repos::usuario::{self, login_usuario},
 };
 use axum::{
@@ -138,7 +138,7 @@ pub async fn login_usuario_h(
         return (
             StatusCode::BAD_REQUEST,
             Js(json!(Ress::<u32> {
-                message: "Error",
+                message: Respuesta::Error,
                 description: "Complete los campos",
                 data: None
             })),
@@ -166,7 +166,7 @@ pub async fn login_usuario_h(
                         ),
                     )],
                     Js(json!(Ress::<u8> {
-                        message: "Éxito",
+                        message: Respuesta::Success,
                         description: "Ha iniciado sesión correctamente",
                         data: None
                     })),
@@ -176,7 +176,7 @@ pub async fn login_usuario_h(
                 (
                     StatusCode::UNAUTHORIZED,
                     Js(json!(Ress::<u8> {
-                        message: "Error",
+                        message: Respuesta::Error,
                         description: "Nombre de usuario o contraseña incorrectos",
                         data: None
                     })),
@@ -187,7 +187,7 @@ pub async fn login_usuario_h(
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Js(json!(Ress::<u8> {
-                message: "Error",
+                message: Respuesta::Error,
                 description: "Error comprobando credenciales",
                 data: None
             })),

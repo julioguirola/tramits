@@ -4,6 +4,7 @@ use fake::faker::address::en::{CityName, StreetName, StreetSuffix};
 use fake::faker::name::en::{FirstName, LastName};
 use sqlx::{Pool, Postgres, Row, postgres::PgPoolOptions};
 use std::fs;
+use tracing::info;
 
 async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let result = sqlx::query("select id from municipio;")
@@ -28,7 +29,7 @@ async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
 
     let result = sqlx::raw_sql(&inserts).execute(pool).await?;
 
-    println!("Oficinas creadas: {}", result.rows_affected());
+    info!("Oficinas creadas: {}", result.rows_affected());
 
     Ok(())
 }
@@ -56,7 +57,7 @@ async fn generar_bodegas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
 
     let result = sqlx::raw_sql(&inserts).execute(pool).await?;
 
-    println!("Bodegas creadas: {}", result.rows_affected());
+    info!("Bodegas creadas: {}", result.rows_affected());
 
     Ok(())
 }
@@ -85,7 +86,7 @@ async fn generar_nucleos(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
 
     let result = sqlx::raw_sql(&inserts).execute(pool).await?;
 
-    println!("Nucleos creados: {}", result.rows_affected());
+    info!("Nucleos creados: {}", result.rows_affected());
 
     Ok(())
 }
@@ -118,7 +119,7 @@ async fn generar_personas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
 
     let result = sqlx::raw_sql(&inserts).execute(pool).await?;
 
-    println!("Personas creadas: {}", result.rows_affected());
+    info!("Personas creadas: {}", result.rows_affected());
 
     Ok(())
 }

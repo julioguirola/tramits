@@ -10,8 +10,10 @@ mod config;
 mod db;
 mod http;
 mod repos;
+
 use crate::http::{persona, usuario};
 use config::EnvConfig;
+use config::auth::auth_m;
 use config::cors::cors_m;
 use config::logger::logger_m;
 use sqlx::{Pool, Postgres};
@@ -47,6 +49,7 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/{*path}", any(|| async { StatusCode::NO_CONTENT }))
         .layer(middleware::from_fn(logger_m))
         .layer(middleware::from_fn_with_state(shared_state.clone(), cors_m))
+        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m))
         .with_state(shared_state);
 
     let listener =

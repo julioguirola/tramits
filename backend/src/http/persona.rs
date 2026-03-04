@@ -11,7 +11,7 @@ use serde_json::json;
 
 use crate::{
     AppState,
-    config::tipos::Ress,
+    config::tipos::{Respuesta, Ress},
     repos::persona::{Persona, get_personas},
 };
 
@@ -31,7 +31,7 @@ pub async fn get_personas_h(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(json!(Ress::<u8> {
-                    message: "Error",
+                    message: Respuesta::Error,
                     description: "Carnet no válido, debe tener 11 caracteres",
                     data: None,
                 })),
@@ -41,7 +41,7 @@ pub async fn get_personas_h(
             return (
                 StatusCode::BAD_REQUEST,
                 Json(json!(Ress::<u8> {
-                    message: "Error",
+                    message: Respuesta::Error,
                     description: "Carnet no válido, solo debe tener caracteres numéricos",
                     data: None,
                 })),
@@ -57,7 +57,7 @@ pub async fn get_personas_h(
                 return (
                     StatusCode::NOT_FOUND,
                     Json(json!(Ress::<u8> {
-                        message: "Atención",
+                        message: Respuesta::Warn,
                         description: "Persona/s no encontrada/s",
                         data: None,
                     })),
@@ -66,7 +66,7 @@ pub async fn get_personas_h(
             (
                 StatusCode::OK,
                 Json(json!(Ress::<Vec<Persona>> {
-                    message: "Éxito",
+                    message: Respuesta::Success,
                     description: "Persona/s encontrada/s",
                     data: Some(p),
                 })),
@@ -75,7 +75,7 @@ pub async fn get_personas_h(
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!(Ress::<u8> {
-                message: "Error",
+                message: Respuesta::Error,
                 description: "Error obteniendo persona/s",
                 data: None
             })),
