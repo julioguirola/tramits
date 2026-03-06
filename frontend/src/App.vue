@@ -1,35 +1,25 @@
 <script lang="ts">
 import "vue-sonner/style.css";
 import { Toaster } from "vue-sonner";
+import SidebarProvider from "./components/ui/sidebar/SidebarProvider.vue";
+import { SidebarTrigger } from "./components/ui/sidebar";
 // import { api } from "./lib/utils";
 
 export default {
   components: {
     Toaster,
-  },
-  data() {
-    return {
-      name: "",
-    };
-  },
-  mounted() {
-    // api.get("/").then((d) => (this.name = d.data));
-    // api.post("/", { sdf: "fsd" });
-    // fetch("http://localhost:3030/", {
-    //   method: "POST",
-    //   body: JSON.stringify({ sdf: "fsd" }),
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    // });
+    SidebarProvider,
+    SidebarTrigger,
   },
 };
 </script>
 
 <template>
-  <!-- {{ name }} -->
-  <Toaster />
-  <RouterView />
+  <SidebarProvider>
+    <SidebarTrigger />
+    <Toaster />
+    <RouterView />
+  </SidebarProvider>
 </template>
 
 <style scoped></style>
