@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import { GalleryVerticalEnd } from "lucide-vue-next";
 import { Home } from "lucide-vue-next";
+import DashboardUser from "./components/DashboardUser.vue";
 export default {
   components: {
     Sidebar,
@@ -35,13 +36,23 @@ export default {
     SidebarTrigger,
     GalleryVerticalEnd,
     Home,
+    DashboardUser,
+  },
+  data() {
+    return {
+      user: {
+        name: "shadcn",
+        email: "m@example.com",
+        avatar: "https://github.com/julioguirola.png",
+      },
+    };
   },
 };
 </script>
 
 <template>
   <SidebarProvider>
-    <Sidebar>
+    <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -66,35 +77,36 @@ export default {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton as-child>
-                  <a href="#">
+                  <RouterLink to="/">
                     <Home />
                     <span>Home</span>
-                  </a>
+                  </RouterLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter />
-      <SidebarRail />
+      <SidebarFooter>
+        <DashboardUser :user="user" />
+      </SidebarFooter>
     </Sidebar>
     <SidebarInset>
       <header
         class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
       >
         <div class="flex items-center gap-2 px-4">
-          <SidebarTrigger class="-ml-1" />
+          <SidebarTrigger class="-ml-1 hover:cursor-pointer" />
         </div>
       </header>
-      <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <!-- <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
         <div class="grid auto-rows-min gap-4 md:grid-cols-3">
           <div class="aspect-video rounded-xl bg-muted/50" />
           <div class="aspect-video rounded-xl bg-muted/50" />
           <div class="aspect-video rounded-xl bg-muted/50" />
         </div>
         <div class="min-h-screen flex-1 rounded-xl bg-muted/50 md:min-h-min" />
-      </div>
+      </div> -->
     </SidebarInset>
   </SidebarProvider>
 </template>

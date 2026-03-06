@@ -116,7 +116,7 @@ export default {
 </script>
 
 <template>
-  <Card>
+  <Card class="w-93.75">
     <CardHeader>
       <CardTitle>Crea una cuenta</CardTitle>
       <CardDescription>

@@ -69,7 +69,7 @@ export default {
 </script>
 
 <template>
-  <Card>
+  <Card class="w-93.75">
     <CardHeader>
       <CardTitle>Inicia sesión en tu cuenta</CardTitle>
       <CardDescription>
