@@ -17,7 +17,7 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const jwtStore = useJwtStore();
   if (jwtStore.jwt) {
-    config.headers.Authorization = `Bearer ${"adasd"}`;
+    config.headers.Authorization = `Bearer ${jwtStore.jwt}`;
   }
   return config;
 });

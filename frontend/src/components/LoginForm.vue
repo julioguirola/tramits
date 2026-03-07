@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { api, toast_trigger } from "@/lib/utils";
 import router from "@/router";
 import { RouterLink } from "vue-router";
+import { useJwtStore } from "@/stores/jwt.store";
 export default {
   components: {
     Card,
@@ -54,6 +55,8 @@ export default {
           })
         ).data;
         toast_trigger(res);
+        const store = useJwtStore();
+        store.setJwt(res.data);
         router.push("/dashboard");
       } catch (e: any) {
         const res = e.response.data;

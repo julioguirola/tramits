@@ -17,9 +17,9 @@ use sha2::Sha256;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UsuarioJwt {
     sub: Uuid,
-    email: String,
-    iat: u64,
-    exp: u64,
+    pub email: String,
+    pub iat: u64,
+    pub exp: u64,
 }
 
 #[derive(Serialize, FromRow)]
@@ -96,7 +96,7 @@ pub async fn login_usuario(
                     .duration_since(UNIX_EPOCH)
                     .unwrap()
                     .as_secs(),
-                exp: 10,
+                exp: 24 * 60 * 60,
             },
             secret,
         ) {
