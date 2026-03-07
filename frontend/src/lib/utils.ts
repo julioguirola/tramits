@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import axios from "axios";
 import { toast } from "vue-sonner";
+import { useJwtStore } from "@/stores/jwt.store";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -11,6 +12,14 @@ export function cn(...inputs: ClassValue[]) {
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
+});
+
+api.interceptors.request.use((config) => {
+  const jwtStore = useJwtStore();
+  if (jwtStore.jwt) {
+    config.headers.Authorization = `Bearer ${"adasd"}`;
+  }
+  return config;
 });
 
 enum Respuesta {

@@ -47,6 +47,7 @@ export default {
       },
     };
   },
+  mounted() {},
 };
 </script>
 
@@ -107,6 +108,7 @@ export default {
         </div>
         <div class="min-h-screen flex-1 rounded-xl bg-muted/50 md:min-h-min" />
       </div> -->
+      <RouterView />
     </SidebarInset>
   </SidebarProvider>
 </template>

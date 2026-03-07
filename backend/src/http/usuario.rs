@@ -6,7 +6,7 @@ use crate::{
 use axum::{
     Json,
     extract::State,
-    http::{StatusCode, header::SET_COOKIE},
+    http::StatusCode,
     response::{IntoResponse, Json as Js, Response},
 };
 use serde::Deserialize;
@@ -158,17 +158,10 @@ pub async fn login_usuario_h(
             if v {
                 (
                     StatusCode::OK,
-                    [(
-                        SET_COOKIE,
-                        format!(
-                            "TRAMITS_TOKEN={}; Path=/; HttpOnly; SameSite=Lax; Max-Age={}",
-                            token, 3600
-                        ),
-                    )],
-                    Js(json!(Ress::<u8> {
+                    Js(json!(Ress::<String> {
                         message: Respuesta::Success.as_str(),
                         description: "Ha iniciado sesión correctamente",
-                        data: None
+                        data: Some(token)
                     })),
                 )
                     .into_response()

@@ -92,8 +92,6 @@ export default {
       e.preventDefault();
       this.loading_verificar = true;
       try {
-        console.log(import.meta.env.VITE_API_URL);
-
         const res = (
           await api.get("/persona", {
             params: { carnet: this.carnet },

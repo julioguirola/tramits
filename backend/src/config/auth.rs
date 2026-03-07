@@ -6,7 +6,7 @@ use crate::{
 use axum::{
     Json,
     extract::{Request, State},
-    http::{StatusCode, header::COOKIE},
+    http::{StatusCode, header::AUTHORIZATION},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -29,7 +29,7 @@ fn forbidden() -> Response {
 }
 
 pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Next) -> Response {
-    let Some(cookie) = req.headers().get(COOKIE) else {
+    let Some(cookie) = req.headers().get(AUTHORIZATION) else {
         return forbidden();
     };
 
@@ -37,7 +37,7 @@ pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
         return forbidden();
     };
 
-    let Some((_, token)) = cookie_str.split_once('=') else {
+    let Some((_, token)) = cookie_str.split_once(' ') else {
         return forbidden();
     };
 
