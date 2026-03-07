@@ -14,7 +14,11 @@ use hmac::{Hmac, Mac};
 use jwt::VerifyWithKey;
 use serde_json::json;
 use sha2::Sha256;
-use std::sync::Arc;
+use std::{
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
+use tracing::warn;
 
 fn forbidden() -> Response {
     (
@@ -46,6 +50,18 @@ pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
     let claim: Result<UsuarioJwt, _> = token.verify_with_key(&key);
 
     if claim.is_err() {
+        return forbidden();
+    }
+
+    if let Ok(usr) = claim
+        && (SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            - usr.iat)
+            > usr.exp
+    {
+        warn!("Token expirado para: {}", &usr.email);
         return forbidden();
     }
 
