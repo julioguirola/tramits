@@ -18,7 +18,7 @@ use std::{
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tracing::warn;
+use tracing::{error, warn};
 
 fn forbidden() -> Response {
     (
@@ -33,36 +33,41 @@ fn forbidden() -> Response {
 }
 
 pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Next) -> Response {
-    let Some(cookie) = req.headers().get(AUTHORIZATION) else {
+    let Some(authorization) = req.headers().get(AUTHORIZATION) else {
         return forbidden();
     };
 
-    let Ok(cookie_str) = cookie.to_str() else {
+    let Ok(authorization_str) = authorization.to_str() else {
         return forbidden();
     };
 
-    let Some((_, token)) = cookie_str.split_once(' ') else {
+    let Some((_, token)) = authorization_str.split_once(' ') else {
         return forbidden();
     };
 
-    let key: Hmac<Sha256> = Hmac::new_from_slice(estado.env_config.jwt_secret.as_bytes()).unwrap();
+    let key: Result<Hmac<Sha256>, _> =
+        Hmac::new_from_slice(estado.env_config.jwt_secret.as_bytes());
 
-    let claim: Result<UsuarioJwt, _> = token.verify_with_key(&key);
+    match key {
+        Ok(k) => {
+            let claim: Result<UsuarioJwt, _> = token.verify_with_key(&k);
 
-    if claim.is_err() {
-        return forbidden();
-    }
+            if claim.is_err() {
+                return forbidden();
+            }
 
-    if let Ok(usr) = claim
-        && (SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-            - usr.iat)
-            > usr.exp
-    {
-        warn!("Token expirado para: {}", &usr.email);
-        return forbidden();
+            if let Ok(usr) = claim
+                && let Ok(t) = SystemTime::now().duration_since(UNIX_EPOCH)
+                && t.as_secs() > usr.exp
+            {
+                warn!("Token expirado para: {}", &usr.email);
+                return forbidden();
+            }
+        }
+        Err(e) => {
+            error!("{}", e);
+            return forbidden();
+        }
     }
 
     next.run(req).await

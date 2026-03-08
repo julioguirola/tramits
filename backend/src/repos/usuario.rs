@@ -22,13 +22,25 @@ pub struct UsuarioJwt {
     pub exp: u64,
 }
 
+impl UsuarioJwt {
+    pub fn new(sub: Uuid, email: String) -> Option<UsuarioJwt> {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
+        Some(UsuarioJwt {
+            sub,
+            email,
+            iat: now,
+            exp: now + 24 * 60 * 60,
+        })
+    }
+}
+
 #[derive(Serialize, FromRow)]
 pub struct Usuario {
     id: Uuid,
     pass_word: String,
 }
 
-fn jwt(claim: &UsuarioJwt, secret: &str) -> Result<String, JwtError> {
+pub fn jwt(claim: &UsuarioJwt, secret: &str) -> Result<String, JwtError> {
     let key: Hmac<Sha256> =
         Hmac::new_from_slice(secret.as_bytes()).map_err(|_| JwtError::InvalidSignature)?;
 
@@ -40,7 +52,7 @@ pub async fn crear_usuario(
     email: &String,
     pass_word: &String,
     persona_id: &Uuid,
-) -> Result<(), Error> {
+) -> Result<Uuid, Error> {
     let salt = SaltString::generate(&mut OsRng);
     let hash = Argon2::default()
         .hash_password(pass_word.as_bytes(), &salt)
@@ -49,18 +61,20 @@ pub async fn crear_usuario(
             Error::Protocol(e.to_string())
         })?
         .to_string();
-    sqlx::query("insert into usuario (email, pass_word, persona_id) values ($1, $2, $3);")
-        .bind(email)
-        .bind(hash)
-        .bind(persona_id)
-        .execute(db)
-        .await
-        .map_err(|e| {
-            error!("{}", e);
-            e
-        })?;
+    let user_id: Uuid = sqlx::query_scalar(
+        "insert into usuario (email, pass_word, persona_id) values ($1, $2, $3) returning id;",
+    )
+    .bind(email)
+    .bind(hash)
+    .bind(persona_id)
+    .fetch_one(db)
+    .await
+    .map_err(|e| {
+        error!("{}", e);
+        e
+    })?;
 
-    Ok(())
+    Ok(user_id)
 }
 
 pub async fn login_usuario(
@@ -88,23 +102,18 @@ pub async fn login_usuario(
         .verify_password(pass_word.as_bytes(), &parsed_hash)
         .is_ok()
     {
-        match jwt(
-            &UsuarioJwt {
-                sub: result.id,
-                email: String::from(email),
-                iat: SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-                exp: 24 * 60 * 60,
-            },
-            secret,
-        ) {
-            Ok(s) => Ok((s, true)),
-            Err(e) => {
-                error!("{}", e);
-                Err(Error::Protocol(e.to_string()))
+        if let Some(user_jwt) = UsuarioJwt::new(result.id, String::from(email)) {
+            match jwt(&user_jwt, secret) {
+                Ok(s) => Ok((s, true)),
+                Err(e) => {
+                    error!("{}", e);
+                    Err(Error::Protocol(e.to_string()))
+                }
             }
+        } else {
+            Err(Error::Protocol(String::from(
+                "Error instanciando UsuarioJwt",
+            )))
         }
     } else {
         Ok((String::default(), false))

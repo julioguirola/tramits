@@ -1,7 +1,7 @@
 use crate::{
     AppState,
     config::tipos::{Respuesta, Ress},
-    repos::usuario::{self, login_usuario},
+    repos::usuario::{self, UsuarioJwt, jwt, login_usuario},
 };
 use axum::{
     Json,
@@ -13,6 +13,7 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::types::Uuid;
 use std::sync::Arc;
+use tracing::error;
 
 #[derive(Debug, Deserialize)]
 pub struct UsuarioDto {
@@ -107,10 +108,42 @@ pub async fn crear_usuario_h(
     let r = usuario::crear_usuario(&estado.db, &body.email, &body.pass_word, &persona_id).await;
 
     match r {
-        Ok(_) => (
-            StatusCode::CREATED,
-            Js(json!({"message":"Éxito", "description": "Usuario creado"})),
-        ),
+        Ok(sub) => {
+            if let Some(user_jwt) = UsuarioJwt::new(sub, body.email) {
+                let token = jwt(&user_jwt, &estado.env_config.jwt_secret);
+                match token {
+                    Ok(val) => (
+                        StatusCode::CREATED,
+                        Js(json!(Ress::<String> {
+                            message: Respuesta::Success.as_str(),
+                            description: "Usuario creado",
+                            data: Some(val)
+                        })),
+                    ),
+                    Err(e) => {
+                        error!("{}", e);
+                        (
+                            StatusCode::CREATED,
+                            Js(json!(Ress::<u8> {
+                                message: Respuesta::Error.as_str(),
+                                description: "Error creando usuario",
+                                data: None
+                            })),
+                        )
+                    }
+                }
+            } else {
+                error!("Error instanciando usuario");
+                (
+                    StatusCode::CREATED,
+                    Js(json!(Ress::<u8> {
+                        message: Respuesta::Error.as_str(),
+                        description: "Error creando usuario",
+                        data: None
+                    })),
+                )
+            }
+        }
         Err(e) => {
             if let sqlx::Error::Database(db_err) = &e
                 && db_err.is_unique_violation()
