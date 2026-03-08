@@ -1,9 +1,10 @@
 import type { ClassValue } from "clsx";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { toast } from "vue-sonner";
 import { useJwtStore } from "@/stores/jwt.store";
+import router from "@/router";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -21,6 +22,22 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (res) => {
+    toast_trigger(res.data);
+    return res;
+  },
+  (err: AxiosError) => {
+    if (err.status == 401) {
+      router.push("/");
+    }
+    if (err.response) {
+      toast_trigger(err.response.data);
+    }
+    return err.response;
+  },
+);
 
 enum Respuesta {
   Success = "Éxito",

@@ -46,26 +46,17 @@ export default {
   },
   methods: {
     async submit() {
-      try {
-        this.loading_iniciar = true;
-        const res = (
-          await api.post("/login", {
-            email: this.email,
-            pass_word: this.pass_word,
-          })
-        ).data;
-        toast_trigger(res);
-        const store = useJwtStore();
-        store.setJwt(res.data);
-        router.push("/dashboard");
-      } catch (e: any) {
-        const res = e.response.data;
-        if (res) {
-          toast_trigger(res);
-        }
-      } finally {
-        this.loading_iniciar = false;
-      }
+      this.loading_iniciar = true;
+      const res = (
+        await api.post("/login", {
+          email: this.email,
+          pass_word: this.pass_word,
+        })
+      ).data;
+      const store = useJwtStore();
+      store.setJwt(res.data);
+      router.push("/dashboard");
+      this.loading_iniciar = false;
     },
   },
 };

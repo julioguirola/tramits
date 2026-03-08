@@ -123,7 +123,7 @@ pub async fn crear_usuario_h(
                     Err(e) => {
                         error!("{}", e);
                         (
-                            StatusCode::CREATED,
+                            StatusCode::INTERNAL_SERVER_ERROR,
                             Js(json!(Ress::<u8> {
                                 message: Respuesta::Error.as_str(),
                                 description: "Error creando usuario",
@@ -135,7 +135,7 @@ pub async fn crear_usuario_h(
             } else {
                 error!("Error instanciando usuario");
                 (
-                    StatusCode::CREATED,
+                    StatusCode::INTERNAL_SERVER_ERROR,
                     Js(json!(Ress::<u8> {
                         message: Respuesta::Error.as_str(),
                         description: "Error creando usuario",

@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { api, toast_trigger } from "@/lib/utils";
 import PersonaCard from "@/components/PersonaCard.vue";
 import router from "@/router";
+import { useJwtStore } from "@/stores/jwt.store";
 export default {
   components: {
     Card,
@@ -68,46 +69,31 @@ export default {
   methods: {
     async submit(e: Event) {
       e.preventDefault();
-      try {
-        this.loading_crear = true;
-        const res = (
-          await api.post("/usuario", {
-            email: this.email,
-            pass_word: this.pass_word,
-            persona_id: this.persona?.id,
-          })
-        ).data;
-        toast_trigger(res);
-        router.push("/dashboard");
-      } catch (e: any) {
-        const res = e.response.data;
-        if (res) {
-          toast_trigger(res);
-        }
-      } finally {
-        this.loading_crear = false;
-      }
+      this.loading_crear = true;
+      const res = (
+        await api.post("/usuario", {
+          email: this.email,
+          pass_word: this.pass_word,
+          persona_id: this.persona?.id,
+        })
+      ).data;
+      const jwtStore = useJwtStore();
+      jwtStore.setJwt(res.data);
+      router.push("/dashboard");
+      this.loading_crear = false;
     },
     async verificar_carnet(e: Event) {
       e.preventDefault();
       this.loading_verificar = true;
-      try {
-        const res = (
-          await api.get("/persona", {
-            params: { carnet: this.carnet },
-          })
-        ).data;
-        toast_trigger(res);
+      const res = (
+        await api.get("/persona", {
+          params: { carnet: this.carnet },
+        })
+      ).data;
+      if (res.data) {
         this.persona = res.data[0];
-      } catch (e: any) {
-        const res = e.response.data;
-        if (res) {
-          toast_trigger(res);
-        }
-        this.persona = undefined;
-      } finally {
-        this.loading_verificar = false;
       }
+      this.loading_verificar = false;
     },
   },
 };

@@ -20,9 +20,9 @@ use std::{
 };
 use tracing::{error, warn};
 
-fn forbidden() -> Response {
+fn unauthorized() -> Response {
     (
-        StatusCode::FORBIDDEN,
+        StatusCode::UNAUTHORIZED,
         Json(json!(Ress::<u8> {
             message: Respuesta::Info.as_str(),
             description: "Usuario no autenticado",
@@ -34,15 +34,15 @@ fn forbidden() -> Response {
 
 pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Next) -> Response {
     let Some(authorization) = req.headers().get(AUTHORIZATION) else {
-        return forbidden();
+        return unauthorized();
     };
 
     let Ok(authorization_str) = authorization.to_str() else {
-        return forbidden();
+        return unauthorized();
     };
 
     let Some((_, token)) = authorization_str.split_once(' ') else {
-        return forbidden();
+        return unauthorized();
     };
 
     let key: Result<Hmac<Sha256>, _> =
@@ -53,7 +53,7 @@ pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
             let claim: Result<UsuarioJwt, _> = token.verify_with_key(&k);
 
             if claim.is_err() {
-                return forbidden();
+                return unauthorized();
             }
 
             if let Ok(usr) = claim
@@ -61,12 +61,12 @@ pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
                 && t.as_secs() > usr.exp
             {
                 warn!("Token expirado para: {}", &usr.email);
-                return forbidden();
+                return unauthorized();
             }
         }
         Err(e) => {
             error!("{}", e);
-            return forbidden();
+            return unauthorized();
         }
     }
 
