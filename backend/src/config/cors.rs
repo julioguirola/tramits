@@ -5,14 +5,14 @@ use axum::{
     extract::{Request, State},
     http::{HeaderValue, Method, StatusCode, header},
     middleware::Next,
-    response::Response,
+    response::{IntoResponse, Response},
 };
 
 use crate::AppState;
 
 pub async fn cors_m(State(estado): State<Arc<AppState>>, req: Request, next: Next) -> Response {
     if req.method() == Method::OPTIONS {
-        return Response::builder()
+        let option_res = Response::builder()
             .status(StatusCode::NO_CONTENT)
             .header(
                 header::ACCESS_CONTROL_ALLOW_ORIGIN,
@@ -27,8 +27,12 @@ pub async fn cors_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
                 "content-type, authorization",
             )
             .header(header::ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
-            .body(Body::empty())
-            .unwrap();
+            .body(Body::empty());
+        if let Ok(res) = option_res {
+            return res;
+        } else {
+            return (StatusCode::NO_CONTENT).into_response();
+        }
     }
     let mut response = next.run(req).await;
 

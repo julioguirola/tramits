@@ -20,6 +20,8 @@ services:
       - PORT=${PORT}
       - SPA_URL=${SPA_URL}
       - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
     ports:
       - 3030:3030
   

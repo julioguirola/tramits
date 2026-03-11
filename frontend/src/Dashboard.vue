@@ -18,6 +18,7 @@ import {
 import { GalleryVerticalEnd } from "lucide-vue-next";
 import { Home } from "lucide-vue-next";
 import DashboardUser from "./components/DashboardUser.vue";
+import { api } from "@/lib/utils";
 export default {
   components: {
     Sidebar,
@@ -41,13 +42,24 @@ export default {
   data() {
     return {
       user: {
-        name: "shadcn",
-        email: "m@example.com",
+        nombre: "",
+        apellido: "",
+        email: "",
+        tipo: "",
         avatar: "https://github.com/julioguirola.png",
       },
     };
   },
-  mounted() {},
+  async mounted() {
+    const res = await api.get("/usuario/me");
+    if (res?.status === 200 && res.data?.data) {
+      const d = res.data.data;
+      this.user.nombre = d.nombre;
+      this.user.apellido = d.apellido;
+      this.user.email = d.email;
+      this.user.tipo = d.tipo;
+    }
+  },
 };
 </script>
 

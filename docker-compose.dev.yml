@@ -16,7 +16,7 @@ services:
       - ./frontend/components.json:/app/components.json
       - ./frontend/index.html:/app/index.html
     command: bun run dev
-  
+
   backend:
     build:
       context: ./backend
@@ -32,6 +32,9 @@ services:
       - PORT=${PORT}
       - SPA_URL=${SPA_URL}
       - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - REDIS_URL=${REDIS_URL}
     ports:
       - 3030:3030
     volumes:
@@ -48,8 +51,13 @@ services:
       - 5433:5432
     volumes:
       - db_data:/var/lib/postgresql/data
-  
+
   cache:
     image: redis:8.4.0-bookworm
     ports:
       - 6377:6379
+
+  redis-ui:
+    image: redis/redisinsight:latest
+    ports:
+      - 5540:5540

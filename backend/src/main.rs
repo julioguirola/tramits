@@ -4,6 +4,7 @@ use axum::{
     middleware::{self},
     routing::{any, get, post},
 };
+use deadpool_redis::{Config as RedisConfig, Pool as RedisPool, Runtime};
 use std::sync::Arc;
 use tracing::info;
 mod config;
@@ -14,6 +15,7 @@ mod repos;
 use crate::http::{persona, usuario};
 use config::EnvConfig;
 use config::auth::auth_m;
+use config::cache::cache_m;
 use config::cors::cors_m;
 use config::logger::logger_m;
 use sqlx::{Pool, Postgres};
@@ -23,6 +25,7 @@ use tracing_subscriber::{EnvFilter, FmtSubscriber};
 struct AppState {
     env_config: Arc<EnvConfig>,
     db: Pool<Postgres>,
+    redis: RedisPool,
 }
 
 #[tokio::main]
@@ -35,22 +38,37 @@ async fn main() -> Result<(), sqlx::Error> {
     let config = EnvConfig::new();
     let db = db::init_db(&config, false).await?;
 
+    let redis = RedisConfig::from_url(&config.redis_url)
+        .create_pool(Some(Runtime::Tokio1))
+        .expect("Error creando pool de Redis");
+
     let shared_state = Arc::new(AppState {
         env_config: Arc::new(config),
         db,
+        redis,
     });
     let state_clone = shared_state.clone();
 
+    let router_auth_cache = Router::new()
+        .route("/usuario/me", get(usuario::me_h))
+        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m))
+        .layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            cache_m,
+        ));
+
     let routes_auth = Router::new()
-        .route("/persona", get(persona::get_personas_h))
+        .route("/logout", post(usuario::logout_h))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes = Router::new()
         .route("/", get(|| async { "Hello World!" }))
+        .route("/persona", get(persona::get_personas_h))
         .route("/usuario", post(usuario::crear_usuario_h))
         .route("/login", post(usuario::login_usuario_h))
         .route("/{*path}", any(|| async { StatusCode::NO_CONTENT }))
         .merge(routes_auth)
+        .merge(router_auth_cache)
         .layer(middleware::from_fn_with_state(shared_state.clone(), cors_m))
         .layer(middleware::from_fn(logger_m))
         .with_state(shared_state);

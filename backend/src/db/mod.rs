@@ -1,4 +1,8 @@
 use crate::config::EnvConfig;
+use argon2::{
+    Argon2, PasswordHasher,
+    password_hash::{SaltString, rand_core::OsRng},
+};
 use fake::Fake;
 use fake::faker::address::en::{CityName, StreetName, StreetSuffix};
 use fake::faker::name::en::{FirstName, LastName};
@@ -124,6 +128,31 @@ async fn generar_personas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
+async fn crear_admin(pool: &Pool<Postgres>, email: &str, password: &str) -> Result<(), sqlx::Error> {
+    let persona_id: sqlx::types::Uuid = sqlx::query_scalar("select id from persona limit 1;")
+        .fetch_one(pool)
+        .await?;
+
+    let salt = SaltString::generate(&mut OsRng);
+    let hash = Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| sqlx::Error::Protocol(e.to_string()))?
+        .to_string();
+
+    sqlx::query(
+        "insert into usuario (email, pass_word, persona_id, tipo_id) values ($1, $2, $3, 3);",
+    )
+    .bind(email)
+    .bind(hash)
+    .bind(persona_id)
+    .execute(pool)
+    .await?;
+
+    info!("Usuario administrador creado: {}", email);
+
+    Ok(())
+}
+
 pub async fn init_db(config: &EnvConfig, migrate: bool) -> Result<Pool<Postgres>, sqlx::Error> {
     let database_url = format!(
         "postgres://{}:{}@{}:{}/{}",
@@ -144,6 +173,7 @@ pub async fn init_db(config: &EnvConfig, migrate: bool) -> Result<Pool<Postgres>
         generar_bodegas(&pool).await?;
         generar_nucleos(&pool).await?;
         generar_personas(&pool).await?;
+        crear_admin(&pool, &config.admin_email, &config.admin_password).await?;
     }
 
     Ok(pool)

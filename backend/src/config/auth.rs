@@ -6,7 +6,7 @@ use crate::{
 use axum::{
     Json,
     extract::{Request, State},
-    http::{StatusCode, header::AUTHORIZATION},
+    http::{StatusCode, header::COOKIE},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -33,15 +33,18 @@ fn unauthorized() -> Response {
 }
 
 pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Next) -> Response {
-    let Some(authorization) = req.headers().get(AUTHORIZATION) else {
+    let Some(cookie_header) = req.headers().get(COOKIE) else {
         return unauthorized();
     };
 
-    let Ok(authorization_str) = authorization.to_str() else {
+    let Ok(cookie_str) = cookie_header.to_str() else {
         return unauthorized();
     };
 
-    let Some((_, token)) = authorization_str.split_once(' ') else {
+    let Some(token) = cookie_str.split(';').find_map(|part| {
+        let part = part.trim();
+        part.strip_prefix("jwt=")
+    }) else {
         return unauthorized();
     };
 

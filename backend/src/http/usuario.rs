@@ -1,12 +1,15 @@
 use crate::{
     AppState,
     config::tipos::{Respuesta, Ress},
-    repos::usuario::{self, UsuarioJwt, jwt, login_usuario},
+    repos::usuario::{self, UsuarioInfo, UsuarioJwt, get_usuario_actual, jwt, login_usuario},
 };
 use axum::{
     Json,
     extract::State,
-    http::StatusCode,
+    http::{
+        StatusCode,
+        header::{COOKIE, SET_COOKIE},
+    },
     response::{IntoResponse, Json as Js, Response},
 };
 use serde::Deserialize;
@@ -71,95 +74,92 @@ fn is_valid_email(email: &str) -> bool {
 pub async fn crear_usuario_h(
     State(estado): State<Arc<AppState>>,
     Json(body): Json<UsuarioDto>,
-) -> impl IntoResponse {
+) -> Response {
     if !is_valid_email(&body.email) {
         return (
             StatusCode::BAD_REQUEST,
             Js(json!({"message":"Error", "description": "Email inválido"})),
-        );
+        )
+            .into_response();
     }
 
     if body.pass_word.len() < 8 {
         return (
             StatusCode::BAD_REQUEST,
-            Js(
-                json!({"message":"Error", "description": "La contraseña debe tener 8 o mas caracteres"}),
-            ),
-        );
+            Js(json!({"message":"Error", "description": "La contraseña debe tener 8 o mas caracteres"})),
+        ).into_response();
     }
 
-    if !&body.persona_id.is_some() {
-        return (
-            StatusCode::BAD_REQUEST,
-            Js(json!({"message":"Error", "description": "Persona_id debe ser un uuid valido"})),
-        );
-    }
-
-    let persona_id = match Uuid::parse_str(&body.persona_id.unwrap()) {
-        Ok(v) => v,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Js(json!({"message":"Error", "description": "Persona_id debe ser un uuid valido"})),
-            );
-        }
-    };
-
-    let r = usuario::crear_usuario(&estado.db, &body.email, &body.pass_word, &persona_id).await;
-
-    match r {
-        Ok(sub) => {
-            if let Some(user_jwt) = UsuarioJwt::new(sub, body.email) {
-                let token = jwt(&user_jwt, &estado.env_config.jwt_secret);
-                match token {
-                    Ok(val) => (
-                        StatusCode::CREATED,
-                        Js(json!(Ress::<String> {
-                            message: Respuesta::Success.as_str(),
-                            description: "Usuario creado",
-                            data: Some(val)
-                        })),
-                    ),
-                    Err(e) => {
-                        error!("{}", e);
-                        (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            Js(json!(Ress::<u8> {
-                                message: Respuesta::Error.as_str(),
-                                description: "Error creando usuario",
+    if let Some(id) = body.persona_id
+        && let Ok(persona_id) = Uuid::parse_str(&id)
+    {
+        let r = usuario::crear_usuario(&estado.db, &body.email, &body.pass_word, &persona_id).await;
+        match r {
+            Ok(sub) => {
+                if let Some(user_jwt) = UsuarioJwt::new(sub, body.email) {
+                    let token = jwt(&user_jwt, &estado.env_config.jwt_secret);
+                    match token {
+                        Ok(val) => (
+                            StatusCode::CREATED,
+                            [(
+                                SET_COOKIE,
+                                format!("jwt={}; HttpOnly; Path=/; SameSite=Strict", val),
+                            )],
+                            Js(json!(Ress::<()> {
+                                message: Respuesta::Success.as_str(),
+                                description: "Usuario creado",
                                 data: None
                             })),
                         )
+                            .into_response(),
+                        Err(e) => {
+                            error!("{}", e);
+                            (
+                                StatusCode::INTERNAL_SERVER_ERROR,
+                                Js(json!(Ress::<u8> {
+                                    message: Respuesta::Error.as_str(),
+                                    description: "Error creando usuario",
+                                    data: None
+                                })),
+                            )
+                                .into_response()
+                        }
                     }
+                } else {
+                    error!("Error instanciando usuario");
+                    (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        Js(json!(Ress::<u8> {
+                            message: Respuesta::Error.as_str(),
+                            description: "Error creando usuario",
+                            data: None
+                        })),
+                    )
+                        .into_response()
                 }
-            } else {
-                error!("Error instanciando usuario");
+            }
+            Err(e) => {
+                if let sqlx::Error::Database(db_err) = &e
+                    && db_err.is_unique_violation()
+                {
+                    return (
+                        StatusCode::CONFLICT,
+                        Js(json!({"message":"Error", "description": "Ya existe un usuario con ese email"})),
+                    ).into_response();
+                }
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Js(json!(Ress::<u8> {
-                        message: Respuesta::Error.as_str(),
-                        description: "Error creando usuario",
-                        data: None
-                    })),
+                    Js(json!({"message":"Error", "description": "Error creando usuario"})),
                 )
+                    .into_response()
             }
         }
-        Err(e) => {
-            if let sqlx::Error::Database(db_err) = &e
-                && db_err.is_unique_violation()
-            {
-                return (
-                    StatusCode::CONFLICT,
-                    Js(
-                        json!({"message":"Error", "description": "Ya existe un usuario con ese email"}),
-                    ),
-                );
-            }
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Js(json!({"message":"Error", "description": "Error creando usuario"})),
-            )
-        }
+    } else {
+        (
+            StatusCode::BAD_REQUEST,
+            Js(json!({"message":"Error", "description": "Persona_id debe ser un uuid valido"})),
+        )
+            .into_response()
     }
 }
 
@@ -191,10 +191,14 @@ pub async fn login_usuario_h(
             if v {
                 (
                     StatusCode::OK,
-                    Js(json!(Ress::<String> {
+                    [(
+                        SET_COOKIE,
+                        format!("jwt={}; HttpOnly; Path=/; SameSite=Strict", token),
+                    )],
+                    Js(json!(Ress::<()> {
                         message: Respuesta::Success.as_str(),
                         description: "Ha iniciado sesión correctamente",
-                        data: Some(token)
+                        data: None
                     })),
                 )
                     .into_response()
@@ -210,6 +214,15 @@ pub async fn login_usuario_h(
                     .into_response()
             }
         }
+        Err(sqlx::Error::RowNotFound) => (
+            StatusCode::UNAUTHORIZED,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "Nombre de usuario o contraseña incorrectos",
+                data: None
+            })),
+        )
+            .into_response(),
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Js(json!(Ress::<u8> {
@@ -220,4 +233,49 @@ pub async fn login_usuario_h(
         )
             .into_response(),
     }
+}
+
+pub async fn me_h(State(state): State<Arc<AppState>>, req: axum::extract::Request) -> Response {
+    let cookie_header = req
+        .headers()
+        .get(COOKIE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    match get_usuario_actual(&state.db, &state.env_config.jwt_secret, cookie_header).await {
+        Ok(info) => (
+            StatusCode::OK,
+            Js(json!(Ress::<UsuarioInfo> {
+                message: Respuesta::Success.as_str(),
+                description: "Usuario obtenido",
+                data: Some(info)
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("{}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Error obteniendo usuario",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+pub async fn logout_h() -> Response {
+    (
+        StatusCode::OK,
+        [(SET_COOKIE, "jwt=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0")],
+        Js(json!(Ress::<()> {
+            message: Respuesta::Success.as_str(),
+            description: "Sesión cerrada",
+            data: None
+        })),
+    )
+        .into_response()
 }

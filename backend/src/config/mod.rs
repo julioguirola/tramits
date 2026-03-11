@@ -1,5 +1,6 @@
 use std::env;
 pub mod auth;
+pub mod cache;
 pub mod cors;
 pub mod logger;
 pub mod tipos;
@@ -13,6 +14,9 @@ pub struct EnvConfig {
     pub spa_url: String,
     pub environment: String,
     pub jwt_secret: String,
+    pub admin_email: String,
+    pub admin_password: String,
+    pub redis_url: String,
 }
 
 impl EnvConfig {
@@ -29,6 +33,11 @@ impl EnvConfig {
             env::var("JWT_SECRET").unwrap_or_else(|_| panic!("JWT_SECRET must be set"));
         let environment =
             env::var("ENVIRONMENT").unwrap_or_else(|_| panic!("ENVIRONMENT must be set"));
+        let admin_email =
+            env::var("ADMIN_EMAIL").unwrap_or_else(|_| panic!("ADMIN_EMAIL must be set"));
+        let admin_password =
+            env::var("ADMIN_PASSWORD").unwrap_or_else(|_| panic!("ADMIN_PASSWORD must be set"));
+        let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| panic!("REDIS_URL must be set"));
 
         EnvConfig {
             db_host,
@@ -40,6 +49,9 @@ impl EnvConfig {
             spa_url,
             environment,
             jwt_secret,
+            admin_email,
+            admin_password,
+            redis_url,
         }
     }
 }

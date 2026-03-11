@@ -23,7 +23,6 @@ import { Input } from "@/components/ui/input";
 import { api, toast_trigger } from "@/lib/utils";
 import PersonaCard from "@/components/PersonaCard.vue";
 import router from "@/router";
-import { useJwtStore } from "@/stores/jwt.store";
 export default {
   components: {
     Card,
@@ -70,16 +69,14 @@ export default {
     async submit(e: Event) {
       e.preventDefault();
       this.loading_crear = true;
-      const res = (
-        await api.post("/usuario", {
-          email: this.email,
-          pass_word: this.pass_word,
-          persona_id: this.persona?.id,
-        })
-      ).data;
-      const jwtStore = useJwtStore();
-      jwtStore.setJwt(res.data);
-      router.push("/dashboard");
+      const res = await api.post("/usuario", {
+        email: this.email,
+        pass_word: this.pass_word,
+        persona_id: this.persona?.id,
+      });
+      if (res?.status === 201) {
+        router.push("/dashboard");
+      }
       this.loading_crear = false;
     },
     async verificar_carnet(e: Event) {

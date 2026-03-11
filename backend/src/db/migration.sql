@@ -1,4 +1,5 @@
 drop table if exists usuario;
+drop table if exists usuario_tipo;
 drop table if exists persona;
 drop table if exists nucleo;
 drop table if exists bodega;
@@ -44,11 +45,22 @@ create table persona (
     CONSTRAINT chk_carnet_length CHECK (LENGTH(carnet) = 11)
 );
 
+create table usuario_tipo (
+    id serial primary key,
+    nombre text not null unique
+);
+
+insert into usuario_tipo (nombre) values
+('Consumidor'),
+('Registrador'),
+('Administrador');
+
 create table usuario (
     id uuid default gen_random_uuid() primary key,
     email text not null unique,
     pass_word text not null,
-    persona_id uuid not null references persona(id)
+    persona_id uuid not null references persona(id),
+    tipo_id int not null default 1 references usuario_tipo(id)
 );
 
 
