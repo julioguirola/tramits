@@ -15,10 +15,10 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { GalleryVerticalEnd } from "lucide-vue-next";
-import { Home } from "lucide-vue-next";
+import { GalleryVerticalEnd, Home } from "lucide-vue-next";
 import DashboardUser from "./components/DashboardUser.vue";
-import { api } from "@/lib/utils";
+import { useUsuarioStore } from "@/stores/usuario.store";
+import { mapState, mapActions } from "pinia";
 export default {
   components: {
     Sidebar,
@@ -39,26 +39,14 @@ export default {
     Home,
     DashboardUser,
   },
-  data() {
-    return {
-      user: {
-        nombre: "",
-        apellido: "",
-        email: "",
-        tipo: "",
-        avatar: "https://github.com/julioguirola.png",
-      },
-    };
+  computed: {
+    ...mapState(useUsuarioStore, ["usuario"]),
+  },
+  methods: {
+    ...mapActions(useUsuarioStore, ["cargar"]),
   },
   async mounted() {
-    const res = await api.get("/usuario/me");
-    if (res?.status === 200 && res.data?.data) {
-      const d = res.data.data;
-      this.user.nombre = d.nombre;
-      this.user.apellido = d.apellido;
-      this.user.email = d.email;
-      this.user.tipo = d.tipo;
-    }
+    await this.cargar();
   },
 };
 </script>
@@ -101,7 +89,7 @@ export default {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <DashboardUser :user="user" />
+        <DashboardUser v-if="usuario" :user="usuario" />
       </SidebarFooter>
     </Sidebar>
     <SidebarInset>

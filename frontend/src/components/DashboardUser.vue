@@ -52,7 +52,9 @@ async function logout() {
               </AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">{{ user.nombre }} {{ user.apellido }}</span>
+              <span class="truncate font-medium"
+                >{{ user.nombre }} {{ user.apellido }}</span
+              >
               <span class="truncate text-xs">{{ user.email }}</span>
             </div>
             <ChevronsUpDown class="ml-auto size-4" />
@@ -73,8 +75,12 @@ async function logout() {
                 </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">{{ user.nombre }} {{ user.apellido }}</span>
-                <span class="truncate text-xs text-muted-foreground">{{ user.tipo }}</span>
+                <span class="truncate font-semibold"
+                  >{{ user.nombre }} {{ user.apellido }}</span
+                >
+                <span class="truncate text-xs text-muted-foreground">{{
+                  user.tipo
+                }}</span>
               </div>
             </div>
           </DropdownMenuLabel>

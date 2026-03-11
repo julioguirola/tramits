@@ -1,5 +1,4 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
 import { api } from "@/lib/utils";
 
 export interface Usuario {
@@ -10,33 +9,33 @@ export interface Usuario {
   avatar: string;
 }
 
-export const useUsuarioStore = defineStore("usuario", () => {
-  const usuario = ref<Usuario | null>(null);
-  const cargando = ref(false);
-
-  async function cargar() {
-    if (usuario.value) return;
-    cargando.value = true;
-    try {
-      const res = await api.get("/usuario/me");
-      if (res?.status === 200 && res.data?.data) {
-        const d = res.data.data;
-        usuario.value = {
-          nombre: d.nombre,
-          apellido: d.apellido,
-          email: d.email,
-          tipo: d.tipo,
-          avatar: "",
-        };
+export const useUsuarioStore = defineStore("usuario", {
+  state: () => ({
+    usuario: null as Usuario | null,
+    cargando: false,
+  }),
+  actions: {
+    async cargar() {
+      if (this.usuario) return;
+      this.cargando = true;
+      try {
+        const res = await api.get("/usuario/me");
+        if (res?.status === 200 && res.data?.data) {
+          const d = res.data.data;
+          this.usuario = {
+            nombre: d.nombre,
+            apellido: d.apellido,
+            email: d.email,
+            tipo: d.tipo,
+            avatar: "",
+          };
+        }
+      } finally {
+        this.cargando = false;
       }
-    } finally {
-      cargando.value = false;
-    }
-  }
-
-  function limpiar() {
-    usuario.value = null;
-  }
-
-  return { usuario, cargando, cargar, limpiar };
+    },
+    limpiar() {
+      this.usuario = null;
+    },
+  },
 });
