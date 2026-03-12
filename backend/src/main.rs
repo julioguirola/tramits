@@ -12,7 +12,7 @@ mod db;
 mod http;
 mod repos;
 
-use crate::http::{persona, usuario};
+use crate::http::{nucleo, persona, usuario};
 use config::EnvConfig;
 use config::auth::auth_m;
 use config::cache::cache_m;
@@ -59,6 +59,7 @@ async fn main() -> Result<(), sqlx::Error> {
 
     let routes_auth = Router::new()
         .route("/logout", post(usuario::logout_h))
+        .route("/nucleo", get(nucleo::get_nucleos_h))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes = Router::new()

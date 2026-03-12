@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import Login from "@/Login.vue";
 import Register from "@/Register.vue";
 import Dashboard from "@/Dashboard.vue";
+import Bienvenida from "@/components/Bienvenida.vue";
 import NotFound from "@/components/NotFound.vue";
 import axios from "axios";
 
@@ -35,6 +36,12 @@ const router = createRouter({
     {
       path: "/dashboard",
       component: Dashboard,
+      children: [
+        { path: "", component: Bienvenida },
+        { path: "nuevo-tramite", component: Bienvenida },
+        { path: "tramites", component: Bienvenida },
+        { path: "usuarios", component: Bienvenida },
+      ],
     },
     {
       path: "/:pathMatch(.*)*",

@@ -15,10 +15,23 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { GalleryVerticalEnd, FilePlus, ClipboardList, Users } from "lucide-vue-next";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  GalleryVerticalEnd,
+  FilePlus,
+  ClipboardList,
+  Users,
+} from "lucide-vue-next";
 import DashboardUser from "./components/DashboardUser.vue";
 import { useUsuarioStore } from "@/stores/usuario.store";
 import { mapState, mapActions } from "pinia";
+
 export default {
   components: {
     Sidebar,
@@ -35,6 +48,11 @@ export default {
     SidebarProvider,
     SidebarRail,
     SidebarTrigger,
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
     GalleryVerticalEnd,
     DashboardUser,
   },
@@ -43,15 +61,26 @@ export default {
     menuItems() {
       const tipo = this.usuario?.tipo;
       if (tipo === "Consumidor") {
-        return [{ label: "Nuevo trámite", icon: this.icons.FilePlus, to: "/nuevo-tramite" }];
+        return [{ label: "Nuevo trámite", icon: this.icons.FilePlus, to: "/dashboard/nuevo-tramite" }];
       }
       if (tipo === "Registrador") {
-        return [{ label: "Trámites", icon: this.icons.ClipboardList, to: "/tramites" }];
+        return [{ label: "Trámites", icon: this.icons.ClipboardList, to: "/dashboard/tramites" }];
       }
       if (tipo === "Administrador") {
-        return [{ label: "Usuarios", icon: this.icons.Users, to: "/usuarios" }];
+        return [{ label: "Usuarios", icon: this.icons.Users, to: "/dashboard/usuarios" }];
       }
       return [];
+    },
+    breadcrumb(): string | null {
+      const path = this.$route.path;
+      const segment = path.replace(/^\/dashboard\/?/, "");
+      if (!segment) return null;
+      const labels: Record<string, string> = {
+        "nuevo-tramite": "Nuevo trámite",
+        tramites: "Trámites",
+        usuarios: "Usuarios",
+      };
+      return labels[segment] ?? segment;
     },
   },
   data() {
@@ -81,8 +110,8 @@ export default {
                 <GalleryVerticalEnd class="size-4" />
               </div>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">Acme Inc</span>
-                <span class="truncate text-xs">Enterprise</span>
+                <span class="truncate font-semibold">Tramits</span>
+                <span class="truncate text-xs">Solicitud de Trámites Online</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -115,6 +144,16 @@ export default {
       >
         <div class="flex items-center gap-2 px-4">
           <SidebarTrigger class="-ml-1 hover:cursor-pointer" />
+          <template v-if="breadcrumb">
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{{ breadcrumb }}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </template>
         </div>
       </header>
       <RouterView />

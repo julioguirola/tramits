@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import { api } from "@/lib/utils";
 import router from "@/router";
+import { useUsuarioStore } from "@/stores/usuario.store";
 
 const props = defineProps<{
   user: {
@@ -29,9 +30,11 @@ const props = defineProps<{
 }>();
 
 const { isMobile } = useSidebar();
+const usuarioStore = useUsuarioStore();
 
 async function logout() {
   await api.post("/logout");
+  usuarioStore.limpiar();
   router.push("/");
 }
 </script>
@@ -46,7 +49,10 @@ async function logout() {
             class="hover:cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar class="h-8 w-8 rounded-lg">
-              <AvatarImage :src="user.avatar" :alt="user.nombre" />
+              <AvatarImage
+                :src="`https://github.com/${user.nombre.toLowerCase()}.png`"
+                :alt="user.nombre"
+              />
               <AvatarFallback class="rounded-lg">
                 {{ user.nombre?.charAt(0) }}{{ user.apellido?.charAt(0) }}
               </AvatarFallback>
@@ -69,7 +75,10 @@ async function logout() {
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
-                <AvatarImage :src="user.avatar" :alt="user.nombre" />
+                <AvatarImage
+                  :src="`https://github.com/${user.nombre.toLowerCase()}.png`"
+                  :alt="user.nombre"
+                />
                 <AvatarFallback class="rounded-lg">
                   {{ user.nombre?.charAt(0) }}{{ user.apellido?.charAt(0) }}
                 </AvatarFallback>

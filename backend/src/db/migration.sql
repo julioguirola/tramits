@@ -1,4 +1,6 @@
+drop table if exists tramite;
 drop table if exists usuario;
+drop table if exists tramite_tipo;
 drop table if exists usuario_tipo;
 drop table if exists persona;
 drop table if exists nucleo;
@@ -41,19 +43,28 @@ create table persona (
     nombre text not null,
     apellido text not null,
     carnet text not null,
-    nucleo_id int not null references nucleo(id),
+    nucleo_id int references nucleo(id),
     CONSTRAINT chk_carnet_length CHECK (LENGTH(carnet) = 11)
 );
 
 create table usuario_tipo (
-    id serial primary key,
+    id int primary key,
     nombre text not null unique
 );
 
-insert into usuario_tipo (nombre) values
-('Consumidor'),
-('Registrador'),
-('Administrador');
+insert into usuario_tipo (id, nombre) values
+(1, 'Consumidor'),
+(2, 'Registrador'),
+(3, 'Administrador');
+
+create table tramite_tipo (
+    id int primary key,
+    nombre text not null unique
+);
+
+insert into tramite_tipo (id, nombre) values
+(1, 'Alta'),
+(2, 'Baja');
 
 create table usuario (
     id uuid default gen_random_uuid() primary key,
@@ -61,6 +72,17 @@ create table usuario (
     pass_word text not null,
     persona_id uuid not null references persona(id),
     tipo_id int not null default 1 references usuario_tipo(id)
+);
+
+
+create table tramite (
+    id serial primary key,
+    persona_id uuid not null references persona(id),
+    usuario_id uuid references usuario(id),
+    nucleo_id int not null references nucleo(id),
+    tipo_id int not null references tramite_tipo(id),
+    fecha_solicitud date not null default current_date,
+    fecha_completado date
 );
 
 
