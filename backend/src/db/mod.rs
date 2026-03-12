@@ -10,32 +10,23 @@ use sqlx::{Pool, Postgres, Row, postgres::PgPoolOptions};
 use std::fs;
 use tracing::info;
 
-async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
-    let result = sqlx::query("select id from municipio where nombre = 'CIEGO DE AVILA';")
-        .fetch_all(pool)
-        .await?;
+async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<i32, sqlx::Error> {
+    let municipio_id: i32 =
+        sqlx::query_scalar("select id from municipio where nombre = 'CIEGO DE AVILA' limit 1;")
+            .fetch_one(pool)
+            .await?;
 
-    let ids: Vec<i32> = result.iter().map(|r| r.get::<i32, _>("id")).collect();
+    let oficina_id: i32 = sqlx::query_scalar(
+        "insert into oficina (nombre, municipio_id) values ($1, $2) returning id;",
+    )
+    .bind((CityName().fake::<String>() + " Ofic").replace("'", " "))
+    .bind(municipio_id)
+    .fetch_one(pool)
+    .await?;
 
-    let mut inserts = String::from("");
+    info!("Oficina creada: id={}", oficina_id);
 
-    for id in ids {
-        let cant_oficinas = rand::random_range::<u8, _>(1..=3);
-
-        for _ in 0..cant_oficinas {
-            inserts += &format!(
-                "insert into oficina (nombre, municipio_id) values ('{}', {});\n",
-                (CityName().fake::<String>() + " Ofic").replace("'", " "),
-                id,
-            );
-        }
-    }
-
-    let result = sqlx::raw_sql(&inserts).execute(pool).await?;
-
-    info!("Oficinas creadas: {}", result.rows_affected());
-
-    Ok(())
+    Ok(oficina_id)
 }
 
 async fn generar_bodegas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
@@ -128,31 +119,68 @@ async fn generar_personas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn crear_admin(
+async fn hashear(password: &str) -> Result<String, sqlx::Error> {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| sqlx::Error::Protocol(e.to_string()))
+        .map(|h| h.to_string())
+}
+
+async fn crear_usuarios(
     pool: &Pool<Postgres>,
-    email: &str,
-    password: &str,
+    oficina_id: i32,
+    config: &EnvConfig,
 ) -> Result<(), sqlx::Error> {
     let persona_id: sqlx::types::Uuid = sqlx::query_scalar("select id from persona limit 1;")
         .fetch_one(pool)
         .await?;
 
-    let salt = SaltString::generate(&mut OsRng);
-    let hash = Argon2::default()
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| sqlx::Error::Protocol(e.to_string()))?
-        .to_string();
-
     sqlx::query(
-        "insert into usuario (email, pass_word, persona_id, tipo_id) values ($1, $2, $3, 3);",
+        "insert into usuario (email, pass_word, persona_id, rol_id) values ($1, $2, $3, 3);",
     )
-    .bind(email)
-    .bind(hash)
+    .bind(&config.admin_email)
+    .bind(hashear(&config.admin_password).await?)
     .bind(persona_id)
     .execute(pool)
     .await?;
 
-    info!("Usuario administrador creado: {}", email);
+    info!("Usuario administrador creado: {}", &config.admin_email);
+
+    // Consumidor
+    let persona_id_consumidor: sqlx::types::Uuid =
+        sqlx::query_scalar("select id from persona offset 1 limit 1;")
+            .fetch_one(pool)
+            .await?;
+
+    sqlx::query(
+        "insert into usuario (email, pass_word, persona_id, rol_id) values ($1, $2, $3, 1);",
+    )
+    .bind(&config.consumer_email)
+    .bind(hashear(&config.consumer_password).await?)
+    .bind(persona_id_consumidor)
+    .execute(pool)
+    .await?;
+
+    info!("Usuario consumidor creado: {}", &config.consumer_email);
+
+    // Registrador
+    let persona_id_registrador: sqlx::types::Uuid =
+        sqlx::query_scalar("select id from persona offset 2 limit 1;")
+            .fetch_one(pool)
+            .await?;
+
+    sqlx::query(
+        "insert into usuario (email, pass_word, persona_id, rol_id, oficina_id) values ($1, $2, $3, 2, $4);",
+    )
+    .bind(&config.registrar_email)
+    .bind(hashear(&config.registrar_email).await?)
+    .bind(persona_id_registrador)
+    .bind(oficina_id)
+    .execute(pool)
+    .await?;
+
+    info!("Usuario registrador creado: {}", &config.registrar_email);
 
     Ok(())
 }
@@ -173,11 +201,11 @@ pub async fn init_db(config: &EnvConfig, migrate: bool) -> Result<Pool<Postgres>
 
         sqlx::raw_sql(&migration_query).execute(&pool).await?;
 
-        generar_oficinas(&pool).await?;
+        let oficina_id = generar_oficinas(&pool).await?;
         generar_bodegas(&pool).await?;
         generar_nucleos(&pool).await?;
         generar_personas(&pool).await?;
-        crear_admin(&pool, &config.admin_email, &config.admin_password).await?;
+        crear_usuarios(&pool, oficina_id, config).await?;
     }
 
     Ok(pool)

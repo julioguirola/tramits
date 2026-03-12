@@ -15,8 +15,8 @@ export default {
   computed: {
     ...mapState(useUsuarioStore, ["usuario"]),
     mensaje(): string {
-      return this.usuario?.tipo
-        ? (mensajes[this.usuario.tipo] ??
+      return this.usuario?.rol
+        ? (mensajes[this.usuario.rol] ??
             "Selecciona una opción del menú lateral.")
         : "";
     },

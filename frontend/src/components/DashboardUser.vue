@@ -24,7 +24,7 @@ const props = defineProps<{
     nombre: string;
     apellido: string;
     email: string;
-    tipo: string;
+    rol: string;
     avatar: string;
   };
 }>();
@@ -88,7 +88,7 @@ async function logout() {
                   >{{ user.nombre }} {{ user.apellido }}</span
                 >
                 <span class="truncate text-xs text-muted-foreground">{{
-                  user.tipo
+                  user.rol
                 }}</span>
               </div>
             </div>

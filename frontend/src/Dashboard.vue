@@ -59,7 +59,7 @@ export default {
   computed: {
     ...mapState(useUsuarioStore, ["usuario"]),
     menuItems() {
-      const tipo = this.usuario?.tipo;
+      const tipo = this.usuario?.rol;
       if (tipo === "Consumidor") {
         return [{ label: "Nuevo trámite", icon: this.icons.FilePlus, to: "/dashboard/nuevo-tramite" }];
       }

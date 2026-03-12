@@ -1,7 +1,7 @@
 drop table if exists tramite;
 drop table if exists usuario;
 drop table if exists tramite_tipo;
-drop table if exists usuario_tipo;
+drop table if exists usuario_rol;
 drop table if exists persona;
 drop table if exists nucleo;
 drop table if exists bodega;
@@ -47,12 +47,12 @@ create table persona (
     CONSTRAINT chk_carnet_length CHECK (LENGTH(carnet) = 11)
 );
 
-create table usuario_tipo (
+create table usuario_rol (
     id int primary key,
     nombre text not null unique
 );
 
-insert into usuario_tipo (id, nombre) values
+insert into usuario_rol (id, nombre) values
 (1, 'Consumidor'),
 (2, 'Registrador'),
 (3, 'Administrador');
@@ -71,7 +71,8 @@ create table usuario (
     email text not null unique,
     pass_word text not null,
     persona_id uuid not null references persona(id),
-    tipo_id int not null default 1 references usuario_tipo(id)
+    rol_id int not null default 1 references usuario_rol(id),
+    oficina_id int references oficina(id)
 );
 
 

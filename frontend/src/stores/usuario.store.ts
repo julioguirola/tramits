@@ -5,7 +5,7 @@ export interface Usuario {
   nombre: string;
   apellido: string;
   email: string;
-  tipo: string;
+  rol: string;
   avatar: string;
 }
 
@@ -26,7 +26,7 @@ export const useUsuarioStore = defineStore("usuario", {
             nombre: d.nombre,
             apellido: d.apellido,
             email: d.email,
-            tipo: d.tipo,
+            rol: d.rol,
             avatar: "",
           };
         }

@@ -52,7 +52,7 @@ pub struct UsuarioInfo {
     pub email: String,
     pub nombre: String,
     pub apellido: String,
-    pub tipo: String,
+    pub rol: String,
 }
 
 pub fn claims_from_cookie(cookie_header: &str, secret: &str) -> Option<UsuarioJwt> {
@@ -73,10 +73,10 @@ pub async fn get_usuario_actual(
         .ok_or_else(|| Error::Protocol("Token inválido".into()))?;
 
     sqlx::query_as::<_, UsuarioInfo>(
-        "select u.email, p.nombre, p.apellido, t.nombre as tipo
+        "select u.email, p.nombre, p.apellido, t.nombre as rol
          from usuario u
          join persona p on p.id = u.persona_id
-         join usuario_tipo t on t.id = u.tipo_id
+         join usuario_rol t on t.id = u.rol_id
          where u.email = $1;",
     )
     .bind(&claims.email)
