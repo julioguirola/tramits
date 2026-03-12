@@ -9,6 +9,8 @@ services:
   
   backend:
     image: julioguirola/tramits-backend:latest
+    depends_on:
+      - db
     environment:
       - DB_HOST=${DB_HOST}
       - DB_USER=${DB_USER}
