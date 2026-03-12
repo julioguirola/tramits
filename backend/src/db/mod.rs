@@ -174,7 +174,7 @@ async fn crear_usuarios(
         "insert into usuario (email, pass_word, persona_id, rol_id, oficina_id) values ($1, $2, $3, 2, $4);",
     )
     .bind(&config.registrar_email)
-    .bind(hashear(&config.registrar_email).await?)
+    .bind(hashear(&config.registrar_password).await?)
     .bind(persona_id_registrador)
     .bind(oficina_id)
     .execute(pool)
