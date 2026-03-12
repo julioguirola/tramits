@@ -46,8 +46,7 @@ jobs:
           username: opc
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /home/opc/tramits
-            git pull origin master
+            curl -o docker-compose.prod.yml https://raw.githubusercontent.com/julioguirola/tramits/master/docker-compose.prod.yml
             sudo docker compose -f ./docker-compose.prod.yml --env-file .env.prod down --remove-orphans
             sudo docker compose -f ./docker-compose.prod.yml --env-file .env.prod pull
             sudo docker compose -f ./docker-compose.prod.yml --env-file .env.prod up -d --remove-orphans
