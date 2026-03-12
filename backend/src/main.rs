@@ -36,7 +36,7 @@ async fn main() -> Result<(), sqlx::Error> {
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
     let config = EnvConfig::new();
-    let db = db::init_db(&config, false).await?;
+    let db = db::init_db(&config, config.migrate).await?;
 
     let redis = RedisConfig::from_url(&config.redis_url)
         .create_pool(Some(Runtime::Tokio1))

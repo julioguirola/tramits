@@ -11,7 +11,7 @@ use std::fs;
 use tracing::info;
 
 async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
-    let result = sqlx::query("select id from municipio;")
+    let result = sqlx::query("select id from municipio where nombre = 'CIEGO DE AVILA';")
         .fetch_all(pool)
         .await?;
 
@@ -128,7 +128,11 @@ async fn generar_personas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     Ok(())
 }
 
-async fn crear_admin(pool: &Pool<Postgres>, email: &str, password: &str) -> Result<(), sqlx::Error> {
+async fn crear_admin(
+    pool: &Pool<Postgres>,
+    email: &str,
+    password: &str,
+) -> Result<(), sqlx::Error> {
     let persona_id: sqlx::types::Uuid = sqlx::query_scalar("select id from persona limit 1;")
         .fetch_one(pool)
         .await?;

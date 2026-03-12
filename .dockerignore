@@ -5,4 +5,4 @@ frontend/node_modules
 .gitignore
 .docker-compose.dev.yml
 .docker-compose.prod.yml
-RFs.md
+AGENTS.md

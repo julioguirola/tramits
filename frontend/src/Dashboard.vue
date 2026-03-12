@@ -15,7 +15,7 @@ import {
   SidebarRail,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { GalleryVerticalEnd, Home } from "lucide-vue-next";
+import { GalleryVerticalEnd, FilePlus, ClipboardList, Users } from "lucide-vue-next";
 import DashboardUser from "./components/DashboardUser.vue";
 import { useUsuarioStore } from "@/stores/usuario.store";
 import { mapState, mapActions } from "pinia";
@@ -36,11 +36,28 @@ export default {
     SidebarRail,
     SidebarTrigger,
     GalleryVerticalEnd,
-    Home,
     DashboardUser,
   },
   computed: {
     ...mapState(useUsuarioStore, ["usuario"]),
+    menuItems() {
+      const tipo = this.usuario?.tipo;
+      if (tipo === "Consumidor") {
+        return [{ label: "Nuevo trámite", icon: this.icons.FilePlus, to: "/nuevo-tramite" }];
+      }
+      if (tipo === "Registrador") {
+        return [{ label: "Trámites", icon: this.icons.ClipboardList, to: "/tramites" }];
+      }
+      if (tipo === "Administrador") {
+        return [{ label: "Usuarios", icon: this.icons.Users, to: "/usuarios" }];
+      }
+      return [];
+    },
+  },
+  data() {
+    return {
+      icons: { FilePlus, ClipboardList, Users },
+    };
   },
   methods: {
     ...mapActions(useUsuarioStore, ["cargar"]),
@@ -73,14 +90,14 @@ export default {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroupLabel>Tramits</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
+              <SidebarMenuItem v-for="item in menuItems" :key="item.to">
                 <SidebarMenuButton as-child>
-                  <RouterLink to="/">
-                    <Home />
-                    <span>Home</span>
+                  <RouterLink :to="item.to">
+                    <component :is="item.icon" />
+                    <span>{{ item.label }}</span>
                   </RouterLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>
