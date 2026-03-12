@@ -7,7 +7,6 @@ use fake::Fake;
 use fake::faker::address::en::{CityName, StreetName, StreetSuffix};
 use fake::faker::name::en::{FirstName, LastName};
 use sqlx::{Pool, Postgres, Row, postgres::PgPoolOptions};
-use std::fs;
 use tracing::info;
 
 async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<i32, sqlx::Error> {
@@ -197,9 +196,9 @@ pub async fn init_db(config: &EnvConfig, migrate: bool) -> Result<Pool<Postgres>
         .await?;
 
     if migrate {
-        let migration_query = fs::read_to_string("src/db/migration.sql")?;
+        let migration_query = include_str!("migration.sql");
 
-        sqlx::raw_sql(&migration_query).execute(&pool).await?;
+        sqlx::raw_sql(migration_query).execute(&pool).await?;
 
         let oficina_id = generar_oficinas(&pool).await?;
         generar_bodegas(&pool).await?;
