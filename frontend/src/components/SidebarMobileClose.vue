@@ -1,21 +1,25 @@
 <script setup lang="ts">
-import { watch } from "vue";
-import { useRoute } from "vue-router";
 import { useSidebar } from "@/components/ui/sidebar";
+import { onMounted, onBeforeUnmount, ref } from "vue";
 
 const { isMobile, setOpenMobile } = useSidebar();
-const route = useRoute();
+const el = ref<HTMLElement | null>(null);
 
-watch(
-  () => route.path,
-  () => {
-    if (isMobile.value) {
-      setOpenMobile(false);
-    }
-  },
-);
+function cerrar() {
+  if (isMobile.value) {
+    setOpenMobile(false);
+  }
+}
+
+onMounted(() => {
+  el.value?.parentElement?.addEventListener("click", cerrar);
+});
+
+onBeforeUnmount(() => {
+  el.value?.parentElement?.removeEventListener("click", cerrar);
+});
 </script>
 
 <template>
-  <span hidden />
+  <span ref="el" hidden />
 </template>

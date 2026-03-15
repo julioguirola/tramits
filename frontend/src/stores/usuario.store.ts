@@ -7,6 +7,12 @@ export interface Usuario {
   email: string;
   rol: string;
   avatar: string;
+  nucleo: string | null;
+  bodega: string | null;
+  oficina: string | null;
+  municipio: string | null;
+  provincia: string | null;
+  numero_nucleo: string | null;
 }
 
 export const useUsuarioStore = defineStore("usuario", {
@@ -28,6 +34,12 @@ export const useUsuarioStore = defineStore("usuario", {
             email: d.email,
             rol: d.rol,
             avatar: "",
+            nucleo: d.nucleo ?? null,
+            numero_nucleo: d.numero_nucleo ?? null,
+            bodega: d.bodega ?? null,
+            oficina: d.oficina ?? null,
+            municipio: d.municipio ?? null,
+            provincia: d.provincia ?? null,
           };
         }
       } finally {

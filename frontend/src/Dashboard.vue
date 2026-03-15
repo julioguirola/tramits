@@ -27,6 +27,7 @@ import {
   FilePlus,
   ClipboardList,
   Users,
+  UserRound,
 } from "lucide-vue-next";
 import DashboardUser from "./components/DashboardUser.vue";
 import SidebarMobileClose from "./components/SidebarMobileClose.vue";
@@ -63,7 +64,10 @@ export default {
     menuItems() {
       const tipo = this.usuario?.rol;
       if (tipo === "Consumidor") {
-        return [{ label: "Nuevo trámite", icon: this.icons.FilePlus, to: "/dashboard/nuevo-tramite" }];
+        return [
+          { label: "Mi informacion", icon: this.icons.UserRound, to: "/dashboard/mi-informacion" },
+          { label: "Nuevo tramite", icon: this.icons.FilePlus, to: "/dashboard/nuevo-tramite" },
+        ];
       }
       if (tipo === "Registrador") {
         return [{ label: "Trámites", icon: this.icons.ClipboardList, to: "/dashboard/tramites" }];
@@ -78,8 +82,9 @@ export default {
       const segment = path.replace(/^\/dashboard\/?/, "");
       if (!segment) return null;
       const labels: Record<string, string> = {
-        "nuevo-tramite": "Nuevo trámite",
-        tramites: "Trámites",
+        "mi-informacion": "Mi informacion",
+        "nuevo-tramite": "Nuevo tramite",
+        tramites: "Tramites",
         usuarios: "Usuarios",
       };
       return labels[segment] ?? segment;
@@ -87,7 +92,7 @@ export default {
   },
   data() {
     return {
-      icons: { FilePlus, ClipboardList, Users },
+      icons: { FilePlus, ClipboardList, Users, UserRound },
     };
   },
   methods: {
@@ -101,7 +106,6 @@ export default {
 
 <template>
   <SidebarProvider>
-    <SidebarMobileClose />
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
         <SidebarMenu>
@@ -130,6 +134,7 @@ export default {
                   <RouterLink :to="item.to">
                     <component :is="item.icon" />
                     <span>{{ item.label }}</span>
+                    <SidebarMobileClose />
                   </RouterLink>
                 </SidebarMenuButton>
               </SidebarMenuItem>

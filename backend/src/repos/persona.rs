@@ -11,16 +11,17 @@ pub struct Persona {
     apellido: String,
     carnet: String,
     direccion: String,
+    municipio: String,
 }
 
 pub async fn get_personas(
     params: &CrearPersonaDto,
     db: &Pool<Postgres>,
 ) -> Result<Vec<Persona>, Error> {
-    let mut consulta = "select p.id, p.nombre, p.apellido, p.carnet, n.direccion
+    let mut consulta = "select p.id, p.nombre, p.apellido, p.carnet, n.direccion, m.nombre as municipio
         from persona p
-        join nucleo n
-        on p.nucleo_id = n.id
+        join nucleo n on p.nucleo_id = n.id
+        join municipio m on m.id = p.municipio_id
         where 1=1"
         .to_string();
     let mut argumentos = sqlx::postgres::PgArguments::default();

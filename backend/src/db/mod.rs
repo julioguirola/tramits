@@ -86,23 +86,29 @@ async fn generar_nucleos(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
 }
 
 async fn generar_personas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
-    let result_nuc = sqlx::query("select id from nucleo;")
-        .fetch_all(pool)
-        .await?;
-
-    let ids_nuc: Vec<i32> = result_nuc.iter().map(|r| r.get::<i32, _>("id")).collect();
+    let result_nuc = sqlx::query(
+        "select n.id, o.municipio_id
+         from nucleo n
+         join bodega b on b.id = n.bodega_id
+         join oficina o on o.id = b.oficina_id;",
+    )
+    .fetch_all(pool)
+    .await?;
 
     let mut inserts = String::from("");
 
-    for id in ids_nuc {
+    for row in &result_nuc {
+        let nuc_id: i32 = row.get("id");
+        let mun_id: i32 = row.get("municipio_id");
         let cant_personas = rand::random_range::<u16, _>(1..=10);
 
         for _ in 0..cant_personas {
             inserts += &format!(
-                "insert into persona (nombre, apellido, nucleo_id, carnet) values ('{}', '{}', {}, '{:02}{:02}{:02}{}');\n",
+                "insert into persona (nombre, apellido, nucleo_id, municipio_id, carnet) values ('{}', '{}', {}, {}, '{:02}{:02}{:02}{}');\n",
                 FirstName().fake::<String>().replace("'", " "),
                 LastName().fake::<String>().replace("'", " "),
-                id,
+                nuc_id,
+                mun_id,
                 rand::random_range::<u16, _>(0..=99),
                 rand::random_range::<u16, _>(1..=12),
                 rand::random_range::<u16, _>(1..=31),

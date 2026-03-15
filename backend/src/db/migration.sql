@@ -44,6 +44,7 @@ create table persona (
     apellido text not null,
     carnet text not null,
     nucleo_id int references nucleo(id),
+    municipio_id int not null references municipio(id),
     CONSTRAINT chk_carnet_length CHECK (LENGTH(carnet) = 11)
 );
 
