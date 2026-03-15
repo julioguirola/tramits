@@ -1,5 +1,7 @@
 # Tramits
 
+![Tramits](frontend/public/tramites.webp)
+
 Plataforma web para la solicitud de tráites de los consumidores en Cuba. Permite gestionar solicitudes de alta y baja de núcleos familiares, con roles diferenciados para consumidores, registradores y administradores.
 
 ## Stack
