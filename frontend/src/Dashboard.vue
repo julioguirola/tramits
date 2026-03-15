@@ -29,6 +29,7 @@ import {
   Users,
 } from "lucide-vue-next";
 import DashboardUser from "./components/DashboardUser.vue";
+import SidebarMobileClose from "./components/SidebarMobileClose.vue";
 import { useUsuarioStore } from "@/stores/usuario.store";
 import { mapState, mapActions } from "pinia";
 
@@ -55,6 +56,7 @@ export default {
     BreadcrumbSeparator,
     GalleryVerticalEnd,
     DashboardUser,
+    SidebarMobileClose,
   },
   computed: {
     ...mapState(useUsuarioStore, ["usuario"]),
@@ -99,6 +101,7 @@ export default {
 
 <template>
   <SidebarProvider>
+    <SidebarMobileClose />
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
         <SidebarMenu>
