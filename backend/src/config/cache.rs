@@ -10,7 +10,7 @@ use deadpool_redis::redis::AsyncCommands;
 use std::sync::Arc;
 use tracing::{error, warn};
 
-const CACHE_TTL: u64 = 3600; // 5 minutos
+const CACHE_TTL: u64 = 60 * 60 * 1000;
 
 pub async fn cache_m(State(state): State<Arc<AppState>>, req: Request, next: Next) -> Response {
     let cookie_header = req
