@@ -13,6 +13,13 @@ use tracing::{error, warn};
 const CACHE_TTL: u64 = 60 * 60 * 1000;
 
 pub async fn cache_m(State(state): State<Arc<AppState>>, req: Request, next: Next) -> Response {
+    let path = req.uri().path().to_string();
+    let query = req.uri().query().unwrap_or("").to_string();
+    let query_suffix = if query.is_empty() {
+        String::new()
+    } else {
+        format!(":{}", query)
+    };
     let cookie_header = req
         .headers()
         .get(COOKIE)
@@ -20,11 +27,19 @@ pub async fn cache_m(State(state): State<Arc<AppState>>, req: Request, next: Nex
         .unwrap_or("")
         .to_string();
 
-    let Some(claims) = claims_from_cookie(&cookie_header, &state.env_config.jwt_secret) else {
-        return next.run(req).await;
+    let cache_key = if path == "/usuario/me" {
+        let Some(claims) = claims_from_cookie(&cookie_header, &state.env_config.jwt_secret) else {
+            return next.run(req).await;
+        };
+        format!("usuario_me:{}{}", claims.email, query_suffix)
+    } else {
+        let route_name = path.trim_matches('/').replace('/', "_");
+        if route_name.is_empty() {
+            format!("root{}", query_suffix)
+        } else {
+            format!("{}{}", route_name, query_suffix)
+        }
     };
-
-    let cache_key = format!("usuario_me:{}", claims.email);
 
     let mut conn: deadpool_redis::Connection = match state.redis.get().await {
         Ok(c) => c,
