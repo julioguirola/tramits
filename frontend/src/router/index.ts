@@ -4,6 +4,7 @@ import Register from "@/Register.vue";
 import Dashboard from "@/Dashboard.vue";
 import Bienvenida from "@/components/Bienvenida.vue";
 import MiInformacion from "@/components/MiInformacion.vue";
+import NuevoTramite from "@/components/NuevoTramite.vue";
 import NotFound from "@/components/NotFound.vue";
 import axios from "axios";
 
@@ -40,7 +41,7 @@ const router = createRouter({
       children: [
         { path: "", component: Bienvenida },
         { path: "mi-informacion", component: MiInformacion },
-        { path: "nuevo-tramite", component: Bienvenida },
+        { path: "nuevo-tramite", component: NuevoTramite },
         { path: "tramites", component: Bienvenida },
         { path: "usuarios", component: Bienvenida },
       ],
