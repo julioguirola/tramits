@@ -1,7 +1,9 @@
-<h1 style="display: inline-flex; align-items: center; gap: 10px; margin: 0 0 12px 0;">
-  <img src="frontend/public/favicon.ico" alt="Tramits" width="32" height="32" style="vertical-align: middle;" />
-  <span>Tramits</span>
-</h1>
+<div style="width: 100%; display: flex; justify-content: center;">
+  <h1 style="display: inline-flex; align-items: center; gap: 10px; margin: 0 0 12px 0;">
+    <img src="frontend/public/favicon.ico" alt="Tramits" width="32" height="32" style="vertical-align: middle;" />
+    <span>Tramits</span>
+  </h1>
+</div>
 
 ![Tramits](frontend/public/tramites.webp)
 
