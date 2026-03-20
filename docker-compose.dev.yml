@@ -61,8 +61,3 @@ services:
     image: redis:8.4.0-bookworm
     ports:
       - 6377:6379
-
-  redis-ui:
-    image: redis/redisinsight:latest
-    ports:
-      - 5540:5540
