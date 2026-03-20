@@ -1,6 +1,10 @@
 <script lang="ts">
 import { useUsuarioStore } from "@/stores/usuario.store";
 import { mapState } from "pinia";
+import ProvinciaFiltro from "./ProvinciaFiltro.vue";
+import MunicipioFiltro from "./MunicipioFiltro.vue";
+import OficinaFiltro from "./OficinaFiltro.vue";
+import BodegaFiltro from "./BodegaFiltro.vue";
 
 const mensajes: Record<string, string> = {
   Consumidor:
@@ -20,6 +24,12 @@ export default {
             "Selecciona una opción del menú lateral.")
         : "";
     },
+  },
+  components: {
+    ProvinciaFiltro,
+    MunicipioFiltro,
+    OficinaFiltro,
+    BodegaFiltro,
   },
 };
 </script>
@@ -41,5 +51,9 @@ export default {
         {{ mensaje }}
       </p>
     </div>
+    <ProvinciaFiltro></ProvinciaFiltro>
+    <MunicipioFiltro></MunicipioFiltro>
+    <OficinaFiltro></OficinaFiltro>
+    <BodegaFiltro></BodegaFiltro>
   </div>
 </template>
