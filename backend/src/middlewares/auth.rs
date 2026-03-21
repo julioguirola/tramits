@@ -32,7 +32,7 @@ fn unauthorized() -> Response {
         .into_response()
 }
 
-pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Next) -> Response {
+pub async fn auth_m(State(estado): State<Arc<AppState>>, mut req: Request, next: Next) -> Response {
     let Some(cookie_header) = req.headers().get(COOKIE) else {
         return unauthorized();
     };
@@ -58,13 +58,18 @@ pub async fn auth_m(State(estado): State<Arc<AppState>>, req: Request, next: Nex
             if claim.is_err() {
                 return unauthorized();
             }
+            let Ok(usr) = claim else {
+                return unauthorized();
+            };
+            let Ok(t) = SystemTime::now().duration_since(UNIX_EPOCH) else {
+                return unauthorized();
+            };
 
-            if let Ok(usr) = claim
-                && let Ok(t) = SystemTime::now().duration_since(UNIX_EPOCH)
-                && t.as_secs() > usr.exp
-            {
+            if t.as_secs() > usr.exp {
                 warn!("Token expirado para: {}", &usr.email);
                 return unauthorized();
+            } else {
+                req.extensions_mut().insert(usr);
             }
         }
         Err(e) => {

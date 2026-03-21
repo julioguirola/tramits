@@ -4,12 +4,9 @@ use crate::{
     tipos::{Respuesta, Ress},
 };
 use axum::{
-    Json,
+    Extension, Json,
     extract::State,
-    http::{
-        StatusCode,
-        header::{COOKIE, SET_COOKIE},
-    },
+    http::{StatusCode, header::SET_COOKIE},
     response::{IntoResponse, Json as Js, Response},
 };
 use serde::Deserialize;
@@ -238,14 +235,11 @@ pub async fn login_usuario_h(
     }
 }
 
-pub async fn me_h(State(state): State<Arc<AppState>>, req: axum::extract::Request) -> Response {
-    let cookie_header = req
-        .headers()
-        .get(COOKIE)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-
-    match get_usuario_actual(&state.db, &state.env_config.jwt_secret, cookie_header).await {
+pub async fn me_h(
+    State(state): State<Arc<AppState>>,
+    Extension(usr): Extension<UsuarioJwt>,
+) -> Response {
+    match get_usuario_actual(&state.db, &usr).await {
         Ok(info) => (
             StatusCode::OK,
             Js(json!(Ress::<UsuarioInfo> {

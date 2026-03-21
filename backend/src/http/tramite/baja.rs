@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use axum::{
-    Json,
+    Extension, Json,
     extract::State,
-    http::{HeaderMap, StatusCode, header::COOKIE},
+    http::StatusCode,
     response::{IntoResponse, Json as Js, Response},
 };
 use serde::Deserialize;
@@ -12,7 +12,7 @@ use tracing::error;
 
 use crate::{
     AppState,
-    repos::tramite::baja::crear_baja,
+    repos::{tramite::baja::crear_baja, usuario::UsuarioJwt},
     tipos::{Respuesta, Ress},
 };
 
@@ -23,22 +23,10 @@ pub struct BajaDto {
 
 pub async fn crear_baja_h(
     State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
+    Extension(usr): Extension<UsuarioJwt>,
     Json(body): Json<BajaDto>,
 ) -> Response {
-    let cookie_header = headers
-        .get(COOKIE)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
-
-    match crear_baja(
-        &state.db,
-        &state.env_config.jwt_secret,
-        cookie_header,
-        body.nucleo_id,
-    )
-    .await
-    {
+    match crear_baja(&state.db, &usr, body.nucleo_id).await {
         Ok(id) => (
             StatusCode::CREATED,
             Js(json!(Ress::<i32> {

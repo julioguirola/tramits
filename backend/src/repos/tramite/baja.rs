@@ -1,19 +1,15 @@
 use sqlx::{Error, Pool, Postgres};
 
-use crate::repos::usuario::claims_from_cookie;
+use crate::repos::usuario::UsuarioJwt;
 
 pub async fn crear_baja(
     db: &Pool<Postgres>,
-    secret: &str,
-    cookie_header: &str,
+    usr: &UsuarioJwt,
     nucleo_id: i32,
 ) -> Result<i32, Error> {
-    let claims = claims_from_cookie(cookie_header, secret)
-        .ok_or_else(|| Error::Protocol("Token inválido".into()))?;
-
     let persona_id: sqlx::types::Uuid =
         sqlx::query_scalar("select persona_id from usuario where email = $1;")
-            .bind(&claims.email)
+            .bind(&usr.email)
             .fetch_one(db)
             .await?;
 

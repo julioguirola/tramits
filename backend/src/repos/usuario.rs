@@ -9,12 +9,12 @@ use sqlx::{Error, Pool, Postgres, prelude::FromRow, types::Uuid};
 use tracing::error;
 
 use hmac::{Hmac, Mac};
-use jwt::{Error as JwtError, SignWithKey, VerifyWithKey};
+use jwt::{Error as JwtError, SignWithKey};
 
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UsuarioJwt {
     pub sub: Uuid,
     pub email: String,
@@ -61,23 +61,10 @@ pub struct UsuarioInfo {
     pub provincia: String,
 }
 
-pub fn claims_from_cookie(cookie_header: &str, secret: &str) -> Option<UsuarioJwt> {
-    let token = cookie_header
-        .split(';')
-        .find_map(|part| part.trim().strip_prefix("jwt="))?;
-
-    let key: Hmac<Sha256> = Hmac::new_from_slice(secret.as_bytes()).ok()?;
-    token.verify_with_key(&key).ok()
-}
-
 pub async fn get_usuario_actual(
     db: &Pool<Postgres>,
-    secret: &str,
-    cookie_header: &str,
+    usr: &UsuarioJwt,
 ) -> Result<UsuarioInfo, Error> {
-    let claims = claims_from_cookie(cookie_header, secret)
-        .ok_or_else(|| Error::Protocol("Token inválido".into()))?;
-
     sqlx::query_as::<_, UsuarioInfo>(
         "select u.email, p.nombre, p.apellido, t.nombre as rol,
                 n.direccion as nucleo, b.nombre as bodega, o.nombre as oficina,
@@ -92,7 +79,7 @@ pub async fn get_usuario_actual(
          left join oficina o on o.id = b.oficina_id
          where u.email = $1;",
     )
-    .bind(&claims.email)
+    .bind(&usr.email)
     .fetch_one(db)
     .await
 }

@@ -54,11 +54,11 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/oficina", get(oficina::get_oficinas_h))
         .route("/bodega", get(bodega::get_bodegas_h))
         .route("/nucleo", get(nucleo::get_nucleos_h))
-        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m))
         .layer(middleware::from_fn_with_state(
             shared_state.clone(),
             cache_m,
-        ));
+        ))
+        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes_auth = Router::new()
         .route("/tramite/baja", post(tramite::baja::crear_baja_h))

@@ -1,8 +1,8 @@
-use crate::{AppState, repos::usuario::claims_from_cookie};
+use crate::{AppState, repos::usuario::UsuarioJwt};
 use axum::{
     body::Body,
     extract::{Request, State},
-    http::{StatusCode, header::COOKIE},
+    http::StatusCode,
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -20,15 +20,9 @@ pub async fn cache_m(State(state): State<Arc<AppState>>, req: Request, next: Nex
     } else {
         format!(":{}", query)
     };
-    let cookie_header = req
-        .headers()
-        .get(COOKIE)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("")
-        .to_string();
 
     let cache_key = if path == "/usuario/me" {
-        let Some(claims) = claims_from_cookie(&cookie_header, &state.env_config.jwt_secret) else {
+        let Some(claims) = req.extensions().get::<UsuarioJwt>() else {
             return next.run(req).await;
         };
         format!("usuario_me:{}{}", claims.email, query_suffix)
