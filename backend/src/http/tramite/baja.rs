@@ -13,31 +13,29 @@ use tracing::error;
 use crate::{
     AppState,
     config::tipos::{Respuesta, Ress},
-    repos::tramite::crear_tramite,
+    repos::tramite::baja::crear_baja,
 };
 
 #[derive(Deserialize)]
-pub struct TramiteDto {
+pub struct BajaDto {
     nucleo_id: i32,
-    tipo_id: i32,
 }
 
-pub async fn crear_tramite_h(
+pub async fn crear_baja_h(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
-    Json(body): Json<TramiteDto>,
+    Json(body): Json<BajaDto>,
 ) -> Response {
     let cookie_header = headers
         .get(COOKIE)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
-    match crear_tramite(
+    match crear_baja(
         &state.db,
         &state.env_config.jwt_secret,
         cookie_header,
         body.nucleo_id,
-        body.tipo_id,
     )
     .await
     {
@@ -45,7 +43,7 @@ pub async fn crear_tramite_h(
             StatusCode::CREATED,
             Js(json!(Ress::<i32> {
                 message: Respuesta::Success.as_str(),
-                description: "Trámite creado",
+                description: "Solicitud de baja creada",
                 data: Some(id)
             })),
         )
@@ -56,7 +54,7 @@ pub async fn crear_tramite_h(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Js(json!(Ress::<u8> {
                     message: Respuesta::Error.as_str(),
-                    description: "Error creando trámite",
+                    description: "Error creando solicitud de baja",
                     data: None
                 })),
             )
