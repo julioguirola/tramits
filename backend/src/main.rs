@@ -10,14 +10,12 @@ use tracing::info;
 mod config;
 mod db;
 mod http;
+mod middlewares;
 mod repos;
-
+mod tipos;
 use crate::http::{bodega, municipio, nucleo, oficina, persona, provincia, tramite, usuario};
+use crate::middlewares::{auth::auth_m, cache::cache_m, cors::cors_m, logger::logger_m};
 use config::EnvConfig;
-use config::auth::auth_m;
-use config::cache::cache_m;
-use config::cors::cors_m;
-use config::logger::logger_m;
 use sqlx::{Pool, Postgres};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 

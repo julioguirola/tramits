@@ -11,8 +11,8 @@ use serde_json::json;
 
 use crate::{
     AppState,
-    config::tipos::{Respuesta, Ress},
     repos::persona::{Persona, get_personas},
+    tipos::{Respuesta, Ress},
 };
 
 #[derive(Deserialize)]

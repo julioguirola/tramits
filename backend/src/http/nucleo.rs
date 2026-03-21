@@ -3,15 +3,15 @@ use std::sync::Arc;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    response::{Json as Js, Response, IntoResponse},
+    response::{IntoResponse, Json as Js, Response},
 };
 use serde::Deserialize;
 use serde_json::json;
 
 use crate::{
     AppState,
-    config::tipos::{Respuesta, Ress},
     repos::nucleo::{Nucleo, get_nucleos},
+    tipos::{Respuesta, Ress},
 };
 
 #[derive(Deserialize)]

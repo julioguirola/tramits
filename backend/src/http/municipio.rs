@@ -10,8 +10,8 @@ use serde_json::json;
 
 use crate::{
     AppState,
-    config::tipos::{Respuesta, Ress},
     repos::municipio::{Municipio, get_municipios},
+    tipos::{Respuesta, Ress},
 };
 
 #[derive(Deserialize)]

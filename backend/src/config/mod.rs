@@ -1,9 +1,4 @@
 use std::env;
-pub mod auth;
-pub mod cache;
-pub mod cors;
-pub mod logger;
-pub mod tipos;
 pub struct EnvConfig {
     pub db_host: String,
     pub db_user: String,
@@ -51,9 +46,8 @@ impl EnvConfig {
         let registrar_password = env::var("REGISTRAR_PASSWORD")
             .unwrap_or_else(|_| panic!("REGISTRAR_PASSWORD must be set"));
         let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| panic!("REDIS_URL must be set"));
-        let migrate = env::var("MIGRATE")
-            .unwrap_or_else(|_| panic!("MIGRATE must be set"))
-            == "true";
+        let migrate =
+            env::var("MIGRATE").unwrap_or_else(|_| panic!("MIGRATE must be set")) == "true";
 
         EnvConfig {
             db_host,

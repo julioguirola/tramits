@@ -12,8 +12,8 @@ use tracing::error;
 
 use crate::{
     AppState,
-    config::tipos::{Respuesta, Ress},
     repos::tramite::baja::crear_baja,
+    tipos::{Respuesta, Ress},
 };
 
 #[derive(Deserialize)]

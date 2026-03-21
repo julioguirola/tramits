@@ -1,7 +1,7 @@
 use crate::{
     AppState,
-    config::tipos::{Respuesta, Ress},
     repos::usuario::{self, UsuarioInfo, UsuarioJwt, get_usuario_actual, jwt, login_usuario},
+    tipos::{Respuesta, Ress},
 };
 use axum::{
     Json,

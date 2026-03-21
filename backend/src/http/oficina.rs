@@ -10,8 +10,8 @@ use serde_json::json;
 
 use crate::{
     AppState,
-    config::tipos::{Respuesta, Ress},
     repos::oficina::{Oficina, get_oficinas},
+    tipos::{Respuesta, Ress},
 };
 
 #[derive(Deserialize)]
