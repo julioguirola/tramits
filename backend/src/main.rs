@@ -63,12 +63,12 @@ async fn main() -> Result<(), sqlx::Error> {
         ));
 
     let routes_auth = Router::new()
-        .route("/logout", post(usuario::logout_h))
         .route("/tramite", post(tramite::crear_tramite_h))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes = Router::new()
         .route("/", get(|| async { "Hello World!" }))
+        .route("/logout", post(usuario::logout_h))
         .route("/persona", get(persona::get_personas_h))
         .route("/usuario", post(usuario::crear_usuario_h))
         .route("/login", post(usuario::login_usuario_h))

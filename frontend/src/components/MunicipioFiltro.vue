@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/lib/utils";
 import { filtrosStore } from "@/stores/filtros.store";
 import { mapActions, mapState } from "pinia";
 export default {

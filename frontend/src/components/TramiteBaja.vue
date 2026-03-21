@@ -1,4 +1,6 @@
 <script lang="ts">
+import { useUsuarioStore } from "@/stores/usuario.store";
+import { mapState } from "pinia";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -7,7 +9,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowRightLeft } from "lucide-vue-next";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowRightLeft, AlertTriangle } from "lucide-vue-next";
+import DialogClose from "./ui/dialog/DialogClose.vue";
 
 export default {
   components: {
@@ -17,7 +30,34 @@ export default {
     CardDescription,
     CardHeader,
     CardTitle,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogClose,
     ArrowRightLeft,
+  },
+  data(): {
+    loading_solicitar: boolean;
+  } {
+    return {
+      loading_solicitar: false,
+    };
+  },
+  computed: {
+    ...mapState(useUsuarioStore, ["usuario"]),
+    nucleoActual(): string | null {
+      return this.usuario?.nucleo || null;
+    },
+  },
+  methods: {
+    async confirmarBaja() {
+      this.loading_solicitar = true;
+      this.loading_solicitar = false;
+    },
   },
 };
 </script>
@@ -32,7 +72,31 @@ export default {
       <CardDescription> Solicita la baja de tu núcleo actual. </CardDescription>
     </CardHeader>
     <CardContent class="space-y-4">
-      <Button> Confirmar Solicitud de Baja </Button>
+      <Dialog>
+        <DialogTrigger as-child>
+          <Button> Solicitar Baja </Button>
+        </DialogTrigger>
+
+        <DialogContent class="sm:max-w-106.25">
+          <DialogHeader>
+            <DialogTitle>Confirmar Solicitud de Baja</DialogTitle>
+            <DialogDescription>
+              Esta acción iniciará el proceso de baja de tu núcleo actual.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <DialogClose as-child>
+              <Button variant="outline" :disabled="loading_solicitar">
+                Cancelar
+              </Button>
+            </DialogClose>
+            <Button @click="confirmarBaja" :disabled="loading_solicitar">
+              {{ loading_solicitar ? "Enviando..." : "Confirmar Baja" }}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </CardContent>
   </Card>
 </template>

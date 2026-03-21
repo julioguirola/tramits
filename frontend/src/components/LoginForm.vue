@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/lib/utils";
 import router from "@/router";
 import { RouterLink } from "vue-router";
+import Spinner from "./ui/spinner/Spinner.vue";
 export default {
   components: {
     Card,
@@ -31,6 +32,7 @@ export default {
     FieldLabel,
     Input,
     RouterLink,
+    Spinner,
   },
   data(): {
     email: string;
@@ -104,7 +106,8 @@ export default {
               :disabled="!email || !pass_word || loading_iniciar"
               @click="submit"
             >
-              Iniciar sesión
+              <Spinner v-if="loading_iniciar" />
+              {{ loading_iniciar ? "" : "Iniciar sesión" }}
             </Button>
             <FieldDescription class="text-center">
               ¿No tienes una cuenta?

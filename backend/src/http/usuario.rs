@@ -193,7 +193,10 @@ pub async fn login_usuario_h(
                     StatusCode::OK,
                     [(
                         SET_COOKIE,
-                        format!("jwt={}; HttpOnly; Path=/; SameSite=Strict", token),
+                        format!(
+                            "jwt={}; HttpOnly; Path=/; SameSite=Strict; Max-Age=10",
+                            token
+                        ),
                     )],
                     Js(json!(Ress::<()> {
                         message: Respuesta::Success.as_str(),
@@ -270,7 +273,10 @@ pub async fn me_h(State(state): State<Arc<AppState>>, req: axum::extract::Reques
 pub async fn logout_h() -> Response {
     (
         StatusCode::OK,
-        [(SET_COOKIE, "jwt=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0")],
+        [(
+            SET_COOKIE,
+            "jwt=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0",
+        )],
         Js(json!(Ress::<()> {
             message: Respuesta::Success.as_str(),
             description: "Sesión cerrada",
