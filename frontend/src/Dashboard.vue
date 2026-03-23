@@ -168,7 +168,7 @@ export default {
         <DashboardUser v-if="usuario" :user="usuario" />
       </SidebarFooter>
     </Sidebar>
-    <SidebarInset class="flex flex-col min-h-screen">
+    <SidebarInset>
       <header
         class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
       >
@@ -186,9 +186,7 @@ export default {
           </template>
         </div>
       </header>
-      <div class="flex-1">
-        <RouterView />
-      </div>
+      <RouterView />
     </SidebarInset>
   </SidebarProvider>
 </template>
