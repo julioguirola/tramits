@@ -125,7 +125,7 @@ export default {
 </script>
 
 <template>
-  <SidebarProvider>
+  <SidebarProvider class="h-screen! min-h-0! overflow-hidden">
     <Sidebar collapsible="icon" variant="floating">
       <SidebarHeader>
         <SidebarMenu>
@@ -168,9 +168,9 @@ export default {
         <DashboardUser v-if="usuario" :user="usuario" />
       </SidebarFooter>
     </Sidebar>
-    <SidebarInset>
+    <SidebarInset class="flex flex-col h-screen overflow-hidden">
       <header
-        class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12"
+        class="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 border-b"
       >
         <div class="flex items-center gap-2 px-4">
           <SidebarTrigger class="-ml-1 hover:cursor-pointer" />
@@ -186,7 +186,9 @@ export default {
           </template>
         </div>
       </header>
-      <RouterView />
+      <div class="flex-1 overflow-y-auto">
+        <RouterView />
+      </div>
     </SidebarInset>
   </SidebarProvider>
 </template>
