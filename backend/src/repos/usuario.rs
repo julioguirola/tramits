@@ -18,16 +18,18 @@ use sha2::Sha256;
 pub struct UsuarioJwt {
     pub sub: Uuid,
     pub email: String,
+    pub rol: String,
     pub iat: u64,
     pub exp: u64,
 }
 
 impl UsuarioJwt {
-    pub fn new(sub: Uuid, email: String) -> Option<UsuarioJwt> {
+    pub fn new(sub: Uuid, email: String, rol: String) -> Option<UsuarioJwt> {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).ok()?.as_secs();
         Some(UsuarioJwt {
             sub,
             email,
+            rol,
             iat: now,
             exp: now + 24 * 60 * 60,
         })
@@ -38,6 +40,7 @@ impl UsuarioJwt {
 pub struct Usuario {
     id: Uuid,
     pass_word: String,
+    rol: String,
 }
 
 pub fn jwt(claim: &UsuarioJwt, secret: &str) -> Result<String, JwtError> {
@@ -114,21 +117,32 @@ pub async fn crear_usuario(
     Ok(user_id)
 }
 
+pub async fn get_rol_usuario(db: &Pool<Postgres>, user_id: &Uuid) -> Result<String, Error> {
+    sqlx::query_scalar("select ur.nombre from usuario u join usuario_rol ur on ur.id = u.rol_id where u.id = $1;")
+        .bind(user_id)
+        .fetch_one(db)
+        .await
+}
+
 pub async fn login_usuario(
     email: &str,
     pass_word: &str,
     db: &Pool<Postgres>,
     secret: &str,
 ) -> Result<(String, bool), Error> {
-    let result =
-        sqlx::query_as::<_, Usuario>("select id, pass_word from usuario where email = $1;")
-            .bind(email)
-            .fetch_one(db)
-            .await
-            .map_err(|e| {
-                error!("{}", e);
-                e
-            })?;
+    let result = sqlx::query_as::<_, Usuario>(
+        "select u.id, u.pass_word, ur.nombre as rol 
+         from usuario u 
+         join usuario_rol ur on ur.id = u.rol_id 
+         where u.email = $1;",
+    )
+    .bind(email)
+    .fetch_one(db)
+    .await
+    .map_err(|e| {
+        error!("{}", e);
+        e
+    })?;
 
     let parsed_hash = PasswordHash::new(&result.pass_word).map_err(|e| {
         error!("Error hasheando contraseña: {}", e.to_string());
@@ -139,7 +153,7 @@ pub async fn login_usuario(
         .verify_password(pass_word.as_bytes(), &parsed_hash)
         .is_ok()
     {
-        if let Some(user_jwt) = UsuarioJwt::new(result.id, String::from(email)) {
+        if let Some(user_jwt) = UsuarioJwt::new(result.id, String::from(email), result.rol) {
             match jwt(&user_jwt, secret) {
                 Ok(s) => Ok((s, true)),
                 Err(e) => {

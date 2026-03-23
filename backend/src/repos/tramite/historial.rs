@@ -1,5 +1,5 @@
 use serde::Serialize;
-use sqlx::{Error, Pool, Postgres, prelude::FromRow, types::Uuid};
+use sqlx::{Arguments, Error, Pool, Postgres, prelude::FromRow, types::Uuid};
 
 use crate::repos::usuario::UsuarioJwt;
 
@@ -12,18 +12,21 @@ pub struct TramiteHistorial {
     pub fecha_completado: Option<String>,
     pub registrador: Option<String>,
     pub estado: String,
+    pub persona_nombre: Option<String>,
+    pub persona_apellido: Option<String>,
 }
 
 pub async fn get_historial_tramites(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
+    estado_id: Option<i32>,
 ) -> Result<Vec<TramiteHistorial>, Error> {
     let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where email = $1;")
         .bind(&usr.email)
         .fetch_one(db)
         .await?;
 
-    let tramites = sqlx::query_as::<_, TramiteHistorial>(
+    let mut query = String::from(
         "select 
             t.id,
             tt.nombre as tipo,
@@ -31,18 +34,71 @@ pub async fn get_historial_tramites(
             to_char(t.fecha_solicitud, 'DD/MM/YYYY') as fecha_solicitud,
             to_char(t.fecha_completado, 'DD/MM/YYYY') as fecha_completado,
             u.email as registrador,
-            te.nombre as estado
+            te.nombre as estado,
+            p.nombre as persona_nombre,
+            p.apellido as persona_apellido
          from tramite t
          join tramite_tipo tt on tt.id = t.tipo_id
          join tramite_estado te on te.id = t.estado_id
          join nucleo n on n.id = t.nucleo_id
+         join persona p on p.id = t.persona_id
          left join usuario u on u.id = t.usuario_id
-         where t.persona_id = $1
-         order by t.fecha_solicitud desc;",
-    )
-    .bind(persona_id)
-    .fetch_all(db)
-    .await?;
+         where t.persona_id = $1"
+    );
+
+    let mut args = sqlx::postgres::PgArguments::default();
+    let _ = args.add(persona_id);
+
+    if let Some(estado) = estado_id {
+        query.push_str(" and t.estado_id = $2");
+        let _ = args.add(estado);
+    }
+
+    query.push_str(" order by t.fecha_solicitud desc;");
+
+    let tramites = sqlx::query_as_with::<_, TramiteHistorial, _>(&query, args)
+        .fetch_all(db)
+        .await?;
+
+    Ok(tramites)
+}
+
+pub async fn get_todas_solicitudes(
+    db: &Pool<Postgres>,
+    estado_id: Option<i32>,
+) -> Result<Vec<TramiteHistorial>, Error> {
+    let mut query = String::from(
+        "select 
+            t.id,
+            tt.nombre as tipo,
+            n.direccion as nucleo,
+            to_char(t.fecha_solicitud, 'DD/MM/YYYY') as fecha_solicitud,
+            to_char(t.fecha_completado, 'DD/MM/YYYY') as fecha_completado,
+            u.email as registrador,
+            te.nombre as estado,
+            p.nombre as persona_nombre,
+            p.apellido as persona_apellido
+         from tramite t
+         join tramite_tipo tt on tt.id = t.tipo_id
+         join tramite_estado te on te.id = t.estado_id
+         join nucleo n on n.id = t.nucleo_id
+         join persona p on p.id = t.persona_id
+         left join usuario u on u.id = t.usuario_id
+         where 1=1"
+    );
+
+    let mut args = sqlx::postgres::PgArguments::default();
+
+    if let Some(estado) = estado_id {
+        query.push_str(" and t.estado_id = $1");
+        let _ = args.add(estado);
+    }
+
+    query.push_str(" order by t.fecha_solicitud desc;");
+
+    let tramites = sqlx::query_as_with::<_, TramiteHistorial, _>(&query, args)
+        .fetch_all(db)
+        .await?;
 
     Ok(tramites)
 }

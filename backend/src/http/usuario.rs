@@ -93,7 +93,22 @@ pub async fn crear_usuario_h(
         let r = usuario::crear_usuario(&estado.db, &body.email, &body.pass_word, &persona_id).await;
         match r {
             Ok(sub) => {
-                if let Some(user_jwt) = UsuarioJwt::new(sub, body.email) {
+                let rol = match usuario::get_rol_usuario(&estado.db, &sub).await {
+                    Ok(r) => r,
+                    Err(e) => {
+                        error!("{}", e);
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            Js(json!(Ress::<u8> {
+                                message: Respuesta::Error.as_str(),
+                                description: "Error obteniendo rol de usuario",
+                                data: None
+                            })),
+                        )
+                            .into_response();
+                    }
+                };
+                if let Some(user_jwt) = UsuarioJwt::new(sub, body.email, rol) {
                     let token = jwt(&user_jwt, &estado.env_config.jwt_secret);
                     match token {
                         Ok(val) => (
