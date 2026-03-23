@@ -1,5 +1,6 @@
 drop table if exists tramite;
 drop table if exists usuario;
+drop table if exists tramite_estado;
 drop table if exists tramite_tipo;
 drop table if exists usuario_rol;
 drop table if exists persona;
