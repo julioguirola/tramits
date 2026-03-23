@@ -80,9 +80,9 @@ pub async fn get_usuario_actual(
          left join nucleo n on n.id = p.nucleo_id
          left join bodega b on b.id = n.bodega_id
          left join oficina o on o.id = b.oficina_id
-         where u.email = $1;",
+         where u.id = $1;",
     )
-    .bind(&usr.email)
+    .bind(&usr.sub)
     .fetch_one(db)
     .await
 }

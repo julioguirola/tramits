@@ -23,8 +23,8 @@ pub async fn tiene_baja_pendiente(db: &Pool<Postgres>, persona_id: &Uuid) -> Res
 
 pub async fn crear_baja(db: &Pool<Postgres>, usr: &UsuarioJwt, nucleo_id: i32) -> Response {
     let persona_id: Uuid =
-        match sqlx::query_scalar("select persona_id from usuario where email = $1;")
-            .bind(&usr.email)
+        match sqlx::query_scalar("select persona_id from usuario where id = $1;")
+            .bind(&usr.sub)
             .fetch_one(db)
             .await
         {

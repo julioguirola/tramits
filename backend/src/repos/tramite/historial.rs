@@ -21,8 +21,8 @@ pub async fn get_historial_tramites(
     usr: &UsuarioJwt,
     estado_id: Option<i32>,
 ) -> Result<Vec<TramiteHistorial>, Error> {
-    let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where email = $1;")
-        .bind(&usr.email)
+    let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where id = $1;")
+        .bind(&usr.sub)
         .fetch_one(db)
         .await?;
 
