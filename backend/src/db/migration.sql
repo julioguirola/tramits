@@ -67,6 +67,17 @@ insert into tramite_tipo (id, nombre) values
 (1, 'Alta'),
 (2, 'Baja');
 
+create table tramite_estado (
+    id int primary key,
+    nombre text not null unique
+);
+
+insert into tramite_estado (id, nombre) values
+(1, 'Pendiente'),
+(2, 'En proceso'),
+(3, 'Completado'),
+(4, 'Rechazado');
+
 create table usuario (
     id uuid default gen_random_uuid() primary key,
     email text not null unique,
@@ -83,6 +94,7 @@ create table tramite (
     usuario_id uuid references usuario(id),
     nucleo_id int not null references nucleo(id),
     tipo_id int not null references tramite_tipo(id),
+    estado_id int not null default 1 references tramite_estado(id),
     fecha_solicitud date default current_date,
     fecha_completado date
 );
@@ -90,6 +102,7 @@ create table tramite (
 comment on column tramite.persona_id is 'La persona que solicita el tramite';
 comment on column tramite.usuario_id is 'El usuario que procesa el tramite';
 comment on column tramite.nucleo_id is 'El nucleo al que se refiere el tramite, en caso de ser alta es el nucleo al que se va a agregar la persona, en caso de ser baja es el nucleo del que se va a eliminar la persona';
+comment on column tramite.estado_id is 'El estado del tramite: 1=Pendiente, 2=En proceso, 3=Completado, 4=Rechazado';
 
 
 insert into provincia (id, nombre) values

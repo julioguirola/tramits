@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Home, Store, Building2, MapPin, Map } from "lucide-vue-next";
+import HistorialTramites from "@/components/HistorialTramites.vue";
 
 export default {
   components: {
@@ -17,6 +18,7 @@ export default {
     CardDescription,
     CardHeader,
     CardTitle,
+    HistorialTramites,
   },
   data() {
     return {
@@ -87,5 +89,8 @@ export default {
         </div>
       </CardContent>
     </Card>
+
+    <!-- Historial de trámites -->
+    <HistorialTramites />
   </div>
 </template>

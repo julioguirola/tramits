@@ -12,7 +12,7 @@ pub async fn tiene_baja_pendiente(db: &Pool<Postgres>, persona_id: &Uuid) -> Res
         "select count(*) from tramite 
          where persona_id = $1 
            and tipo_id = 2 
-           and fecha_completado is null;",
+           and estado_id in (1, 2);",
     )
     .bind(persona_id)
     .fetch_one(db)

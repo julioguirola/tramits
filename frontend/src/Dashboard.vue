@@ -65,15 +65,35 @@ export default {
       const tipo = this.usuario?.rol;
       if (tipo === "Consumidor") {
         return [
-          { label: "Mi informacion", icon: this.icons.UserRound, to: "/dashboard/mi-informacion" },
-          { label: "Nuevo tramite", icon: this.icons.FilePlus, to: "/dashboard/nuevo-tramite" },
+          {
+            label: "Mi informacion",
+            icon: this.icons.UserRound,
+            to: "/dashboard/mi-informacion",
+          },
+          {
+            label: "Nuevo tramite",
+            icon: this.icons.FilePlus,
+            to: "/dashboard/nuevo-tramite",
+          },
         ];
       }
       if (tipo === "Registrador") {
-        return [{ label: "Trámites", icon: this.icons.ClipboardList, to: "/dashboard/tramites" }];
+        return [
+          {
+            label: "Solicitudes",
+            icon: this.icons.ClipboardList,
+            to: "/dashboard/tramites",
+          },
+        ];
       }
       if (tipo === "Administrador") {
-        return [{ label: "Usuarios", icon: this.icons.Users, to: "/dashboard/usuarios" }];
+        return [
+          {
+            label: "Usuarios",
+            icon: this.icons.Users,
+            to: "/dashboard/usuarios",
+          },
+        ];
       }
       return [];
     },
@@ -84,7 +104,7 @@ export default {
       const labels: Record<string, string> = {
         "mi-informacion": "Mi informacion",
         "nuevo-tramite": "Nuevo tramite",
-        tramites: "Tramites",
+        tramites: "Solicitudes",
         usuarios: "Usuarios",
       };
       return labels[segment] ?? segment;
@@ -118,7 +138,9 @@ export default {
               </div>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-semibold">Tramits</span>
-                <span class="truncate text-xs">Solicitud de Trámites Online</span>
+                <span class="truncate text-xs"
+                  >Solicitud de Trámites Online</span
+                >
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
