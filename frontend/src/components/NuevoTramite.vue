@@ -41,7 +41,7 @@ export default {
       </CardHeader>
     </Card>
 
-    <TramiteAlta v-if="!tieneNucleo" />
-    <TramiteBaja v-else />
+    <TramiteAlta />
+    <TramiteBaja />
   </div>
 </template>

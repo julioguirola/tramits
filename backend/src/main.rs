@@ -61,6 +61,7 @@ async fn main() -> Result<(), sqlx::Error> {
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes_auth = Router::new()
+        .route("/tramite/alta", post(tramite::alta::crear_alta_h))
         .route("/tramite/baja", post(tramite::baja::crear_baja_h))
         .route("/tramite", get(tramite::historial::get_historial_h))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
