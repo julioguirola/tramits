@@ -27,8 +27,9 @@ pub async fn get_historial_h(
     Query(params): Query<TramiteQuery>,
 ) -> Response {
     // Si el rol es Registrador o Administrador, obtener todas las solicitudes
+    // (Registrador verá solo de su oficina, Administrador verá todas)
     let result = if usr.rol == "Registrador" || usr.rol == "Administrador" {
-        get_todas_solicitudes(&state.db, params.estado_id).await
+        get_todas_solicitudes(&state.db, &usr, params.estado_id).await
     } else {
         get_historial_tramites(&state.db, &usr, params.estado_id).await
     };

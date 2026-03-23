@@ -65,6 +65,7 @@ pub async fn get_historial_tramites(
 
 pub async fn get_todas_solicitudes(
     db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
     estado_id: Option<i32>,
 ) -> Result<Vec<TramiteHistorial>, Error> {
     let mut query = String::from(
@@ -82,15 +83,34 @@ pub async fn get_todas_solicitudes(
          join tramite_tipo tt on tt.id = t.tipo_id
          join tramite_estado te on te.id = t.estado_id
          join nucleo n on n.id = t.nucleo_id
+         join bodega b on b.id = n.bodega_id
          join persona p on p.id = t.persona_id
          left join usuario u on u.id = t.usuario_id
          where 1=1"
     );
 
     let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 0;
+
+    // Si es Registrador, filtrar por oficina
+    if usr.rol == "Registrador" {
+        // Obtener oficina_id del registrador
+        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+            .bind(&usr.sub)
+            .fetch_one(db)
+            .await?;
+
+        if let Some(oficina) = oficina_id {
+            param_count += 1;
+            query.push_str(&format!(" and b.oficina_id = ${}", param_count));
+            let _ = args.add(oficina);
+        }
+    }
+    // Si es Administrador, no filtrar por oficina (ve todas)
 
     if let Some(estado) = estado_id {
-        query.push_str(" and t.estado_id = $1");
+        param_count += 1;
+        query.push_str(&format!(" and t.estado_id = ${}", param_count));
         let _ = args.add(estado);
     }
 
