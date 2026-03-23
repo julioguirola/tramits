@@ -191,8 +191,9 @@ pub async fn login_usuario_h(
                     [(
                         SET_COOKIE,
                         format!(
-                            "jwt={}; HttpOnly; Path=/; SameSite=Strict; Max-Age=10",
-                            token
+                            "jwt={}; HttpOnly; Path=/; SameSite=Strict; Max-Age={}",
+                            token,
+                            60 * 60 * 24
                         ),
                     )],
                     Js(json!(Ress::<()> {

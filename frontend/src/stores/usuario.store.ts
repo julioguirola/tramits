@@ -12,7 +12,7 @@ export interface Usuario {
   oficina: string | null;
   municipio: string | null;
   provincia: string | null;
-  numero_nucleo: string | null;
+  numero_nucleo: number | null;
 }
 
 export const useUsuarioStore = defineStore("usuario", {

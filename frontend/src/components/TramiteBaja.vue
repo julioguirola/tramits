@@ -18,9 +18,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowRightLeft, AlertTriangle } from "lucide-vue-next";
+import { ArrowRightLeft } from "lucide-vue-next";
 import DialogClose from "./ui/dialog/DialogClose.vue";
+import Spinner from "./ui/spinner/Spinner.vue";
+import { api } from "@/lib/utils";
 
 export default {
   components: {
@@ -39,12 +40,15 @@ export default {
     DialogTrigger,
     DialogClose,
     ArrowRightLeft,
+    Spinner,
   },
   data(): {
     loading_solicitar: boolean;
+    dialog_open: boolean;
   } {
     return {
       loading_solicitar: false,
+      dialog_open: false,
     };
   },
   computed: {
@@ -56,6 +60,12 @@ export default {
   methods: {
     async confirmarBaja() {
       this.loading_solicitar = true;
+      let res = await api.post("/tramite/baja", {
+        nucleo_id: this.usuario?.numero_nucleo,
+      });
+      if (res.status === 201) {
+        this.dialog_open = false;
+      }
       this.loading_solicitar = false;
     },
   },
@@ -72,7 +82,7 @@ export default {
       <CardDescription> Solicita la baja de tu núcleo actual. </CardDescription>
     </CardHeader>
     <CardContent class="space-y-4">
-      <Dialog>
+      <Dialog v-model:open="dialog_open">
         <DialogTrigger as-child>
           <Button> Solicitar Baja </Button>
         </DialogTrigger>
@@ -92,7 +102,8 @@ export default {
               </Button>
             </DialogClose>
             <Button @click="confirmarBaja" :disabled="loading_solicitar">
-              {{ loading_solicitar ? "Enviando..." : "Confirmar Baja" }}
+              <Spinner v-if="loading_solicitar" />
+              {{ loading_solicitar ? "" : "Confirmar Baja" }}
             </Button>
           </DialogFooter>
         </DialogContent>
