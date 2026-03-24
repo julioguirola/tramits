@@ -82,7 +82,7 @@ pub async fn get_usuario_actual(
          left join oficina o on o.id = b.oficina_id
          where u.id = $1;",
     )
-    .bind(&usr.sub)
+    .bind(usr.sub)
     .fetch_one(db)
     .await
 }
@@ -118,10 +118,12 @@ pub async fn crear_usuario(
 }
 
 pub async fn get_rol_usuario(db: &Pool<Postgres>, user_id: &Uuid) -> Result<String, Error> {
-    sqlx::query_scalar("select ur.nombre from usuario u join usuario_rol ur on ur.id = u.rol_id where u.id = $1;")
-        .bind(user_id)
-        .fetch_one(db)
-        .await
+    sqlx::query_scalar(
+        "select ur.nombre from usuario u join usuario_rol ur on ur.id = u.rol_id where u.id = $1;",
+    )
+    .bind(user_id)
+    .fetch_one(db)
+    .await
 }
 
 pub async fn login_usuario(

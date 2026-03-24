@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { api } from "@/lib/utils";
 import router from "@/router";
 import { RouterLink } from "vue-router";
-import Spinner from "./ui/spinner/Spinner.vue";
+import Spinner from "@/components/ui/spinner/Spinner.vue";
 export default {
   components: {
     Card,

@@ -9,7 +9,7 @@ pub async fn crear_tramite_alta(
 ) -> Result<Uuid, Error> {
     // Obtener persona_id del usuario
     let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where id = $1;")
-        .bind(&usr.sub)
+        .bind(usr.sub)
         .fetch_one(db)
         .await?;
 

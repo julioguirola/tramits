@@ -8,8 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import TramiteAlta from "@/components/TramiteAlta.vue";
-import TramiteBaja from "@/components/TramiteBaja.vue";
+import TramiteAlta from "@/components/tramites/TramiteAlta.vue";
+import TramiteBaja from "@/components/tramites/TramiteBaja.vue";
 
 export default {
   components: {

@@ -19,8 +19,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ArrowRightLeft } from "lucide-vue-next";
-import DialogClose from "./ui/dialog/DialogClose.vue";
-import Spinner from "./ui/spinner/Spinner.vue";
+import DialogClose from "@/components/ui/dialog/DialogClose.vue";
+import Spinner from "@/components/ui/spinner/Spinner.vue";
 import { api } from "@/lib/utils";
 
 export default {

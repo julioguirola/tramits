@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/hover-card";
 import { Input } from "@/components/ui/input";
 import { api, toast_trigger } from "@/lib/utils";
-import PersonaCard from "@/components/PersonaCard.vue";
+import PersonaCard from "@/components/persona/PersonaCard.vue";
 import router from "@/router";
 export default {
   components: {

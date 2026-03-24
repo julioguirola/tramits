@@ -2,11 +2,11 @@ import { createRouter, createWebHistory } from "vue-router";
 import Login from "@/Login.vue";
 import Register from "@/Register.vue";
 import Dashboard from "@/Dashboard.vue";
-import Bienvenida from "@/components/Bienvenida.vue";
-import MiInformacion from "@/components/MiInformacion.vue";
-import NuevoTramite from "@/components/NuevoTramite.vue";
-import Solicitudes from "@/components/Solicitudes.vue";
-import NotFound from "@/components/NotFound.vue";
+import Bienvenida from "@/components/dashboard/Bienvenida.vue";
+import MiInformacion from "@/components/persona/MiInformacion.vue";
+import NuevoTramite from "@/components/tramites/NuevoTramite.vue";
+import Solicitudes from "@/components/tramites/Solicitudes.vue";
+import NotFound from "@/components/common/NotFound.vue";
 import axios from "axios";
 
 const authCheck = axios.create({

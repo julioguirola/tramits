@@ -29,8 +29,8 @@ import {
   Users,
   UserRound,
 } from "lucide-vue-next";
-import DashboardUser from "./components/DashboardUser.vue";
-import SidebarMobileClose from "./components/SidebarMobileClose.vue";
+import DashboardUser from "@/components/dashboard/DashboardUser.vue";
+import SidebarMobileClose from "@/components/common/SidebarMobileClose.vue";
 import { useUsuarioStore } from "@/stores/usuario.store";
 import { mapState, mapActions } from "pinia";
 

@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Home, Store, Building2, MapPin, Map } from "lucide-vue-next";
-import HistorialTramites from "@/components/HistorialTramites.vue";
+import HistorialTramites from "@/components/tramites/HistorialTramites.vue";
 
 export default {
   components: {

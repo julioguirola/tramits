@@ -22,7 +22,7 @@ pub async fn get_historial_tramites(
     estado_id: Option<i32>,
 ) -> Result<Vec<TramiteHistorial>, Error> {
     let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where id = $1;")
-        .bind(&usr.sub)
+        .bind(usr.sub)
         .fetch_one(db)
         .await?;
 
@@ -43,7 +43,7 @@ pub async fn get_historial_tramites(
          join nucleo n on n.id = t.nucleo_id
          join persona p on p.id = t.persona_id
          left join usuario u on u.id = t.usuario_id
-         where t.persona_id = $1"
+         where t.persona_id = $1",
     );
 
     let mut args = sqlx::postgres::PgArguments::default();
@@ -86,7 +86,7 @@ pub async fn get_todas_solicitudes(
          join bodega b on b.id = n.bodega_id
          join persona p on p.id = t.persona_id
          left join usuario u on u.id = t.usuario_id
-         where 1=1"
+         where 1=1",
     );
 
     let mut args = sqlx::postgres::PgArguments::default();
@@ -95,10 +95,11 @@ pub async fn get_todas_solicitudes(
     // Si es Registrador, filtrar por oficina
     if usr.rol == "Registrador" {
         // Obtener oficina_id del registrador
-        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
-            .bind(&usr.sub)
-            .fetch_one(db)
-            .await?;
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
 
         if let Some(oficina) = oficina_id {
             param_count += 1;

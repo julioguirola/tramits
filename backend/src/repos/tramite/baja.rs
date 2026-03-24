@@ -22,25 +22,24 @@ pub async fn tiene_baja_pendiente(db: &Pool<Postgres>, persona_id: &Uuid) -> Res
 }
 
 pub async fn crear_baja(db: &Pool<Postgres>, usr: &UsuarioJwt, nucleo_id: i32) -> Response {
-    let persona_id: Uuid =
-        match sqlx::query_scalar("select persona_id from usuario where id = $1;")
-            .bind(&usr.sub)
-            .fetch_one(db)
-            .await
-        {
-            Ok(id) => id,
-            Err(_) => {
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Js(json!(Ress::<u8> {
-                        message: Respuesta::Error.as_str(),
-                        description: "Error creando solicitud de baja",
-                        data: None
-                    })),
-                )
-                    .into_response();
-            }
-        };
+    let persona_id: Uuid = match sqlx::query_scalar("select persona_id from usuario where id = $1;")
+        .bind(usr.sub)
+        .fetch_one(db)
+        .await
+    {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Error creando solicitud de baja",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    };
 
     // Verificar si ya tiene una solicitud de baja pendiente
     match tiene_baja_pendiente(db, &persona_id).await {

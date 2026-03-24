@@ -29,10 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import ProvinciaFiltro from "@/components/ProvinciaFiltro.vue";
-import MunicipioFiltro from "@/components/MunicipioFiltro.vue";
-import OficinaFiltro from "@/components/OficinaFiltro.vue";
-import BodegaFiltro from "@/components/BodegaFiltro.vue";
+import ProvinciaFiltro from "@/components/filtros/ProvinciaFiltro.vue";
+import MunicipioFiltro from "@/components/filtros/MunicipioFiltro.vue";
+import OficinaFiltro from "@/components/filtros/OficinaFiltro.vue";
+import BodegaFiltro from "@/components/filtros/BodegaFiltro.vue";
 import { ArrowUpFromLine, Loader2 } from "lucide-vue-next";
 
 interface Nucleo {
