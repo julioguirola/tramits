@@ -16,6 +16,7 @@ mod tipos;
 use crate::http::{bodega, municipio, nucleo, oficina, persona, provincia, tramite, usuario};
 use crate::middlewares::{auth::auth_m, cache::cache_m, cors::cors_m, logger::logger_m};
 use config::EnvConfig;
+use redis::cmd;
 use sqlx::{Pool, Postgres};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -39,6 +40,11 @@ async fn main() -> Result<(), sqlx::Error> {
     let redis = RedisConfig::from_url(&config.redis_url)
         .create_pool(Some(Runtime::Tokio1))
         .expect("Error creando pool de Redis");
+
+    if config.migrate {
+        let mut conn = redis.get().await.unwrap();
+        cmd("FLUSHDB").query_async::<()>(&mut conn).await.unwrap();
+    }
 
     let shared_state = Arc::new(AppState {
         env_config: Arc::new(config),
