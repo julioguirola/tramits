@@ -12,5 +12,7 @@ FROM debian:trixie-slim
 WORKDIR /app
 
 COPY --from=builder /app/target/release/backend ./backend
+COPY --from=builder /app/target/release/migration ./migration
+COPY --from=builder /app/target/release/seeder ./seeder
 
 CMD ["./backend"] 

@@ -1,4 +1,5 @@
 use std::env;
+
 pub struct EnvConfig {
     pub db_host: String,
     pub db_user: String,
