@@ -35,13 +35,13 @@ async fn main() -> Result<(), sqlx::Error> {
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
     let config = EnvConfig::new();
-    let db = db::init_db(&config, config.migrate).await?;
+    let db = db::init_db(&config).await?;
 
     let redis = RedisConfig::from_url(&config.redis_url)
         .create_pool(Some(Runtime::Tokio1))
         .expect("Error creando pool de Redis");
 
-    if config.migrate {
+    if config.environment == "dev" {
         let mut conn = redis.get().await.unwrap();
         cmd("FLUSHDB").query_async::<()>(&mut conn).await.unwrap();
     }

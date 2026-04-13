@@ -16,7 +16,6 @@ pub struct EnvConfig {
     pub registrar_email: String,
     pub registrar_password: String,
     pub redis_url: String,
-    pub migrate: bool,
 }
 
 impl EnvConfig {
@@ -46,8 +45,6 @@ impl EnvConfig {
         let registrar_password = env::var("REGISTRAR_PASSWORD")
             .unwrap_or_else(|_| panic!("REGISTRAR_PASSWORD must be set"));
         let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| panic!("REDIS_URL must be set"));
-        let migrate =
-            env::var("MIGRATE").unwrap_or_else(|_| panic!("MIGRATE must be set")) == "true";
 
         EnvConfig {
             db_host,
@@ -66,7 +63,6 @@ impl EnvConfig {
             registrar_email,
             registrar_password,
             redis_url,
-            migrate,
         }
     }
 }

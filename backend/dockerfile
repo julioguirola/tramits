@@ -4,9 +4,13 @@ WORKDIR /app
 
 COPY Cargo.toml Cargo.lock ./
 
-RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build
-RUN rm src/main.rs
+# RUN mkdir src && echo "fn main() {}" > src/main.rs
+# RUN echo "fn main() {}" > src/seeder.rs
+# RUN echo "fn main() {}" > src/migration.rs
+# RUN cargo build
+# RUN rm src/main.rs
+# RUN rm src/seeder.rs
+# RUN rm src/migration.rs
 
 COPY src ./src
 RUN cargo build
