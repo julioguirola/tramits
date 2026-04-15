@@ -29,7 +29,6 @@ services:
       - REGISTRAR_EMAIL=${REGISTRAR_EMAIL}
       - REGISTRAR_PASSWORD=${REGISTRAR_PASSWORD}
       - REDIS_URL=${REDIS_URL}
-      - MIGRATE=${MIGRATE}
     ports:
       - 3030:3030
   
