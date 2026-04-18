@@ -1,5 +1,6 @@
 use std::env;
 
+#[allow(dead_code)]
 pub struct EnvConfig {
     pub db_host: String,
     pub db_user: String,

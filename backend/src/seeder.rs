@@ -10,6 +10,7 @@ use fake::faker::address::en::{CityName, StreetName, StreetSuffix};
 use fake::faker::name::en::{FirstName, LastName};
 use sqlx::{Pool, Postgres, Row};
 use tracing::info;
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<i32, sqlx::Error> {
     let municipio_id: i32 =
@@ -194,13 +195,45 @@ async fn crear_usuarios(
 
 #[tokio::main]
 async fn main() -> Result<(), sqlx::Error> {
+    let subscriber = FmtSubscriber::builder()
+        .with_env_filter(EnvFilter::from_default_env())
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
+    info!("Iniciando proceso de seeding");
     let config = config::EnvConfig::new();
-    let pool = db::init_db(&config).await?;
+    info!("Conectando a la base de datos");
+    let pool = db::init_db(&config).await.map_err(|e| {
+        tracing::error!("Error conectando a la base de datos en seeder: {}", e);
+        e
+    })?;
 
-    let oficina_id = generar_oficinas(&pool).await?;
-    generar_bodegas(&pool).await?;
-    generar_nucleos(&pool).await?;
-    generar_personas(&pool).await?;
-    crear_usuarios(&pool, oficina_id, &config).await?;
+    info!("Generando oficina inicial");
+    let oficina_id = generar_oficinas(&pool).await.map_err(|e| {
+        tracing::error!("Error generando oficinas: {}", e);
+        e
+    })?;
+    info!("Generando bodegas");
+    generar_bodegas(&pool).await.map_err(|e| {
+        tracing::error!("Error generando bodegas: {}", e);
+        e
+    })?;
+    info!("Generando nucleos");
+    generar_nucleos(&pool).await.map_err(|e| {
+        tracing::error!("Error generando nucleos: {}", e);
+        e
+    })?;
+    info!("Generando personas");
+    generar_personas(&pool).await.map_err(|e| {
+        tracing::error!("Error generando personas: {}", e);
+        e
+    })?;
+    info!("Creando usuarios iniciales");
+    crear_usuarios(&pool, oficina_id, &config)
+        .await
+        .map_err(|e| {
+            tracing::error!("Error creando usuarios iniciales: {}", e);
+            e
+        })?;
+    info!("Seeding completado");
     Ok(())
 }

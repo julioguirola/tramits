@@ -1,0 +1,17 @@
+name: Run Migration Prod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_migration_prod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run migration via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.DOMAIN }}
+          username: opc
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            sudo docker exec tramits-backend-1 sh -c "./migration"

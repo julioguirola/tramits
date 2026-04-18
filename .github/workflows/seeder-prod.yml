@@ -1,0 +1,17 @@
+name: Run Seeder Prod
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_seeder_prod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run seeder via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ vars.DOMAIN }}
+          username: opc
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            sudo docker exec tramits-backend-1 sh -c "./seeder"
