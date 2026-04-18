@@ -14,4 +14,4 @@ jobs:
           username: opc
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            sudo docker exec tramits-backend-1 sh -c "./seeder"
+            sudo docker exec tramits-prod-backend-1 sh -c "./seeder"
