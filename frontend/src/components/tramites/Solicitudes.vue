@@ -45,8 +45,15 @@ export default {
       return Boolean(this.tramites && this.tramites.length > 0);
     },
   },
+  data(): {
+    loading_procesar: string | null;
+  } {
+    return {
+      loading_procesar: null,
+    };
+  },
   methods: {
-    ...mapActions(useTramiteStore, ["cargarHistorial"]),
+    ...mapActions(useTramiteStore, ["cargarHistorial", "procesarBaja"]),
     getEstadoVariant(
       estado: string,
     ): "default" | "secondary" | "outline" | "destructive" {
@@ -61,9 +68,14 @@ export default {
       }
       return "";
     },
-    procesarSolicitud(id: string) {
-      console.log("Procesar solicitud:", id);
-      // TODO: Implementar lógica de procesamiento
+    async procesarSolicitud(id: string) {
+      if (this.loading_procesar) return;
+      this.loading_procesar = id;
+      const ok = await this.procesarBaja(id);
+      if (ok) {
+        await this.cargarHistorial(1);
+      }
+      this.loading_procesar = null;
     },
     getNombreCompleto(tramite: any): string {
       if (tramite.persona_nombre && tramite.persona_apellido) {
@@ -145,10 +157,19 @@ export default {
                     <Button
                       size="sm"
                       @click="procesarSolicitud(tramite.id)"
+                      :disabled="Boolean(loading_procesar)"
                       class="gap-2"
                     >
-                      <PlayCircle class="size-4" />
-                      Procesar
+                      <Loader2
+                        v-if="loading_procesar === tramite.id"
+                        class="size-4 animate-spin"
+                      />
+                      <PlayCircle v-else class="size-4" />
+                      {{
+                        loading_procesar === tramite.id
+                          ? "Procesando"
+                          : "Procesar"
+                      }}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -192,9 +213,14 @@ export default {
                 @click="procesarSolicitud(tramite.id)"
                 class="w-full gap-2"
                 size="sm"
+                :disabled="Boolean(loading_procesar)"
               >
-                <PlayCircle class="size-4" />
-                Procesar
+                <Loader2
+                  v-if="loading_procesar === tramite.id"
+                  class="size-4 animate-spin"
+                />
+                <PlayCircle v-else class="size-4" />
+                {{ loading_procesar === tramite.id ? "Procesando" : "Procesar" }}
               </Button>
             </div>
           </div>

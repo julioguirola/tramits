@@ -92,16 +92,16 @@ create table usuario (
 create table tramite (
     id uuid default gen_random_uuid() primary key,
     persona_id uuid not null references persona(id),
-    usuario_id uuid references usuario(id),
+    registrador_id uuid references usuario(id),
     nucleo_id int not null references nucleo(id),
     tipo_id int not null references tramite_tipo(id),
     estado_id int not null default 1 references tramite_estado(id),
     fecha_solicitud date default current_date,
-    fecha_completado date
+    fecha_finalizado date
 );
 
 comment on column tramite.persona_id is 'La persona que solicita el tramite';
-comment on column tramite.usuario_id is 'El usuario que procesa el tramite';
+comment on column tramite.registrador_id is 'El registrador que procesa el tramite';
 comment on column tramite.nucleo_id is 'El nucleo al que se refiere el tramite, en caso de ser alta es el nucleo al que se va a agregar la persona, en caso de ser baja es el nucleo del que se va a eliminar la persona';
 comment on column tramite.estado_id is 'El estado del tramite: 1=Pendiente, 2=En proceso, 3=Completado, 4=Rechazado';
 

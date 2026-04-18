@@ -6,7 +6,7 @@ export interface Tramite {
   tipo: string;
   nucleo: string;
   fecha_solicitud: string;
-  fecha_completado: string | null;
+  fecha_finalizado: string | null;
   registrador: string | null;
   estado: string;
   persona_nombre: string | null;
@@ -35,6 +35,14 @@ export const useTramiteStore = defineStore("tramite-store", {
         console.error("Error al cargar historial:", error);
       } finally {
         this.cargando = false;
+      }
+    },
+    async procesarBaja(tramiteId: string): Promise<boolean> {
+      try {
+        const res = await api.post(`/tramite/${tramiteId}/procesar`);
+        return res?.status === 200;
+      } catch {
+        return false;
       }
     },
     limpiar() {

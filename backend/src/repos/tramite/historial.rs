@@ -9,7 +9,7 @@ pub struct TramiteHistorial {
     pub tipo: String,
     pub nucleo: String,
     pub fecha_solicitud: String,
-    pub fecha_completado: Option<String>,
+    pub fecha_finalizado: Option<String>,
     pub registrador: Option<String>,
     pub estado: String,
     pub persona_nombre: Option<String>,
@@ -32,7 +32,7 @@ pub async fn get_historial_tramites(
             tt.nombre as tipo,
             n.direccion as nucleo,
             to_char(t.fecha_solicitud, 'DD/MM/YYYY') as fecha_solicitud,
-            to_char(t.fecha_completado, 'DD/MM/YYYY') as fecha_completado,
+            to_char(t.fecha_finalizado, 'DD/MM/YYYY') as fecha_finalizado,
             u.email as registrador,
             te.nombre as estado,
             p.nombre as persona_nombre,
@@ -42,7 +42,7 @@ pub async fn get_historial_tramites(
          join tramite_estado te on te.id = t.estado_id
          join nucleo n on n.id = t.nucleo_id
          join persona p on p.id = t.persona_id
-         left join usuario u on u.id = t.usuario_id
+         left join usuario u on u.id = t.registrador_id
          where t.persona_id = $1",
     );
 
@@ -74,7 +74,7 @@ pub async fn get_todas_solicitudes(
             tt.nombre as tipo,
             n.direccion as nucleo,
             to_char(t.fecha_solicitud, 'DD/MM/YYYY') as fecha_solicitud,
-            to_char(t.fecha_completado, 'DD/MM/YYYY') as fecha_completado,
+            to_char(t.fecha_finalizado, 'DD/MM/YYYY') as fecha_finalizado,
             u.email as registrador,
             te.nombre as estado,
             p.nombre as persona_nombre,
@@ -85,7 +85,7 @@ pub async fn get_todas_solicitudes(
          join nucleo n on n.id = t.nucleo_id
          join bodega b on b.id = n.bodega_id
          join persona p on p.id = t.persona_id
-         left join usuario u on u.id = t.usuario_id
+         left join usuario u on u.id = t.registrador_id
          where 1=1",
     );
 

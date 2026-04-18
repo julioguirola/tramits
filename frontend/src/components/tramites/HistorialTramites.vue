@@ -104,7 +104,7 @@ export default {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Núcleo</TableHead>
                 <TableHead>Fecha Solicitud</TableHead>
-                <TableHead>Fecha Completado</TableHead>
+                <TableHead>Fecha Finalizado</TableHead>
                 <TableHead>Registrador</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
@@ -115,7 +115,7 @@ export default {
                 <TableCell>{{ tramite.nucleo }}</TableCell>
                 <TableCell>{{ tramite.fecha_solicitud }}</TableCell>
                 <TableCell>
-                  {{ tramite.fecha_completado || "-" }}
+                  {{ tramite.fecha_finalizado || "-" }}
                 </TableCell>
                 <TableCell>
                   {{ tramite.registrador || "-" }}
@@ -159,8 +159,8 @@ export default {
                 <span>{{ tramite.fecha_solicitud }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-muted-foreground">Fecha Completado:</span>
-                <span>{{ tramite.fecha_completado || "-" }}</span>
+                <span class="text-muted-foreground">Fecha Finalizado:</span>
+                <span>{{ tramite.fecha_finalizado || "-" }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-muted-foreground">Registrador:</span>
