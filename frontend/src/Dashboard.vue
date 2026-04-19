@@ -26,6 +26,7 @@ import {
   GalleryVerticalEnd,
   FilePlus,
   ClipboardList,
+  History,
   Users,
   UserRound,
 } from "lucide-vue-next";
@@ -66,12 +67,12 @@ export default {
       if (tipo === "Consumidor") {
         return [
           {
-            label: "Mi informacion",
+            label: "Mi información",
             icon: this.icons.UserRound,
             to: "/dashboard/mi-informacion",
           },
           {
-            label: "Nuevo tramite",
+            label: "Nuevo trámite",
             icon: this.icons.FilePlus,
             to: "/dashboard/nuevo-tramite",
           },
@@ -83,6 +84,11 @@ export default {
             label: "Solicitudes",
             icon: this.icons.ClipboardList,
             to: "/dashboard/tramites",
+          },
+          {
+            label: "Historial",
+            icon: this.icons.History,
+            to: "/dashboard/historial",
           },
         ];
       }
@@ -102,9 +108,10 @@ export default {
       const segment = path.replace(/^\/dashboard\/?/, "");
       if (!segment) return null;
       const labels: Record<string, string> = {
-        "mi-informacion": "Mi informacion",
-        "nuevo-tramite": "Nuevo tramite",
+        "mi-informacion": "Mi información",
+        "nuevo-tramite": "Nuevo trámite",
         tramites: "Solicitudes",
+        historial: "Historial",
         usuarios: "Usuarios",
       };
       return labels[segment] ?? segment;
@@ -112,7 +119,7 @@ export default {
   },
   data() {
     return {
-      icons: { FilePlus, ClipboardList, Users, UserRound },
+      icons: { FilePlus, ClipboardList, History, Users, UserRound },
     };
   },
   methods: {

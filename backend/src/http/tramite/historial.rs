@@ -19,6 +19,7 @@ use crate::{
 #[derive(Deserialize)]
 pub struct TramiteQuery {
     pub estado_id: Option<i32>,
+    pub asignadas: Option<bool>,
 }
 
 pub async fn get_historial_h(
@@ -29,7 +30,7 @@ pub async fn get_historial_h(
     // Si el rol es Registrador o Administrador, obtener todas las solicitudes
     // (Registrador verá solo de su oficina, Administrador verá todas)
     let result = if usr.rol == "Registrador" || usr.rol == "Administrador" {
-        get_todas_solicitudes(&state.db, &usr, params.estado_id).await
+        get_todas_solicitudes(&state.db, &usr, params.estado_id, params.asignadas).await
     } else {
         get_historial_tramites(&state.db, &usr, params.estado_id).await
     };

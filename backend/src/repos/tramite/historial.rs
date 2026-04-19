@@ -67,6 +67,7 @@ pub async fn get_todas_solicitudes(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
     estado_id: Option<i32>,
+    asignadas: Option<bool>,
 ) -> Result<Vec<TramiteHistorial>, Error> {
     let mut query = String::from(
         "select 
@@ -105,6 +106,12 @@ pub async fn get_todas_solicitudes(
             param_count += 1;
             query.push_str(&format!(" and b.oficina_id = ${}", param_count));
             let _ = args.add(oficina);
+        }
+
+        if asignadas.unwrap_or(false) {
+            param_count += 1;
+            query.push_str(&format!(" and t.registrador_id = ${}", param_count));
+            let _ = args.add(usr.sub);
         }
     }
     // Si es Administrador, no filtrar por oficina (ve todas)

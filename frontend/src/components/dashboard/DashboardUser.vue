@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronsUpDown, LogOut } from "lucide-vue-next";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,11 +49,7 @@ async function logout() {
             class="hover:cursor-pointer data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar class="h-8 w-8 rounded-lg">
-              <AvatarImage
-                :src="`https://github.com/${user.nombre.toLowerCase()}.png`"
-                :alt="user.nombre"
-              />
-              <AvatarFallback class="rounded-lg">
+              <AvatarFallback class="rounded-lg bg-slate-200 text-slate-700">
                 {{ user.nombre?.charAt(0) }}{{ user.apellido?.charAt(0) }}
               </AvatarFallback>
             </Avatar>
@@ -75,11 +71,7 @@ async function logout() {
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
-                <AvatarImage
-                  :src="`https://github.com/${user.nombre.toLowerCase()}.png`"
-                  :alt="user.nombre"
-                />
-                <AvatarFallback class="rounded-lg">
+                <AvatarFallback class="rounded-lg bg-slate-200 text-slate-700">
                   {{ user.nombre?.charAt(0) }}{{ user.apellido?.charAt(0) }}
                 </AvatarFallback>
               </Avatar>

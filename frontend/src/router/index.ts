@@ -6,6 +6,7 @@ import Bienvenida from "@/components/dashboard/Bienvenida.vue";
 import MiInformacion from "@/components/persona/MiInformacion.vue";
 import NuevoTramite from "@/components/tramites/NuevoTramite.vue";
 import Solicitudes from "@/components/tramites/Solicitudes.vue";
+import HistorialRegistrador from "@/components/tramites/HistorialRegistrador.vue";
 import NotFound from "@/components/common/NotFound.vue";
 import axios from "axios";
 
@@ -44,6 +45,7 @@ const router = createRouter({
         { path: "mi-informacion", component: MiInformacion },
         { path: "nuevo-tramite", component: NuevoTramite },
         { path: "tramites", component: Solicitudes },
+        { path: "historial", component: HistorialRegistrador },
         { path: "usuarios", component: Bienvenida },
       ],
     },
