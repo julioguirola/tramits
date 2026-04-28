@@ -53,29 +53,35 @@ async fn main() -> Result<(), sqlx::Error> {
     });
     let state_clone = shared_state.clone();
 
-    let router_auth_cache = Router::new()
+    // let router_auth_cache = Router::new()
+    //     .layer(middleware::from_fn_with_state(
+    //         shared_state.clone(),
+    //         cache_m,
+    //     ))
+    //     .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
+
+    let routes_auth = Router::new()
+        .route("/tramite/alta", post(tramite::alta::crear_alta_h))
+        .route("/tramite/baja", post(tramite::baja::crear_baja_h))
+        .route(
+            "/tramite/{id}/procesar",
+            post(tramite::procesar::procesar_solicitud_h),
+        )
+        .route(
+            "/tramite/{id}/gestionar",
+            post(tramite::gestionar::gestionar_tramite_h),
+        )
+        .route("/tramite", get(tramite::historial::get_historial_h))
+        .route(
+            "/tramite/historial/registrador",
+            get(tramite::historial_registrador::get_historial_registrador_h),
+        )
         .route("/usuario/me", get(usuario::me_h))
         .route("/provincia", get(provincia::get_provincias_h))
         .route("/municipio", get(municipio::get_municipios_h))
         .route("/oficina", get(oficina::get_oficinas_h))
         .route("/bodega", get(bodega::get_bodegas_h))
         .route("/nucleo", get(nucleo::get_nucleos_h))
-        .layer(middleware::from_fn_with_state(
-            shared_state.clone(),
-            cache_m,
-        ))
-        .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
-
-    let routes_auth = Router::new()
-        .route("/tramite/alta", post(tramite::alta::crear_alta_h))
-        .route("/tramite/baja", post(tramite::baja::crear_baja_h))
-        .route("/tramite/{id}/procesar", post(tramite::procesar::procesar_solicitud_h))
-        .route("/tramite/{id}/gestionar", post(tramite::gestionar::gestionar_tramite_h))
-        .route("/tramite", get(tramite::historial::get_historial_h))
-        .route(
-            "/tramite/historial/registrador",
-            get(tramite::historial_registrador::get_historial_registrador_h),
-        )
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes = Router::new()
@@ -85,7 +91,6 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/usuario", post(usuario::crear_usuario_h))
         .route("/login", post(usuario::login_usuario_h))
         .merge(routes_auth)
-        .merge(router_auth_cache)
         .route("/{*path}", any(|| async { StatusCode::NO_CONTENT }))
         .layer(middleware::from_fn_with_state(shared_state.clone(), cors_m))
         .layer(middleware::from_fn(logger_m))

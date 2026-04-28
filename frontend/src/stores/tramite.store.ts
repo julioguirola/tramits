@@ -46,7 +46,7 @@ export const useTramiteStore = defineStore("tramite-store", {
         this.cargando = false;
       }
     },
-    async procesarBaja(tramiteId: string): Promise<boolean> {
+    async procesarSolicitud(tramiteId: string): Promise<boolean> {
       try {
         const res = await api.post(`/tramite/${tramiteId}/procesar`);
         return res?.status === 200;

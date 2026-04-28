@@ -84,9 +84,11 @@ export default {
   methods: {
     ...mapActions(useTramiteStore, [
       "cargarHistorial",
-      "procesarBaja",
       "gestionarTramite",
     ]),
+    ...mapActions(useTramiteStore, {
+      procesarSolicitudAction: "procesarSolicitud",
+    }),
     getEstadoVariant(
       estado: string,
     ): "default" | "secondary" | "outline" | "destructive" {
@@ -104,7 +106,7 @@ export default {
     async procesarSolicitud(id: string) {
       if (this.loading_procesar) return;
       this.loading_procesar = id;
-      const ok = await this.procesarBaja(id);
+      const ok = await this.procesarSolicitudAction(id);
       if (ok) {
         await this.cargarHistorial(1);
         await this.cargarHistorial(2, true);

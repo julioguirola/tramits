@@ -29,10 +29,14 @@ export default {
     ...mapState(useUsuarioStore, ["usuario"]),
     campos(): { label: string; valor: string | null; icon: object }[] {
       if (!this.usuario) return [];
+      const nucleoLabel =
+        this.usuario.nucleo && this.usuario.numero_nucleo
+          ? `${this.usuario.nucleo} # ${this.usuario.numero_nucleo}`
+          : "Sin núcleo asignado";
       return [
         {
           label: "Nucleo",
-          valor: this.usuario.nucleo + " # " + this.usuario.numero_nucleo,
+          valor: nucleoLabel,
           icon: this.icons.Home,
         },
         { label: "Bodega", valor: this.usuario.bodega, icon: this.icons.Store },

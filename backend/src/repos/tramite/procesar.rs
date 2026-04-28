@@ -13,7 +13,7 @@ struct TramiteParaProcesar {
 
 pub enum ProcesarBajaError {
     NoEncontrado,
-    NoEsBaja,
+    TipoNoSoportado,
     NoPendiente,
     YaAsignado,
     SinOficina,
@@ -21,7 +21,7 @@ pub enum ProcesarBajaError {
     Db(Error),
 }
 
-pub async fn procesar_solicitud_baja(
+pub async fn procesar_solicitud(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
     tramite_id: Uuid,
@@ -46,8 +46,8 @@ pub async fn procesar_solicitud_baja(
         return Err(ProcesarBajaError::NoEncontrado);
     };
 
-    if tramite.tipo_id != 2 {
-        return Err(ProcesarBajaError::NoEsBaja);
+    if tramite.tipo_id != 1 && tramite.tipo_id != 2 {
+        return Err(ProcesarBajaError::TipoNoSoportado);
     }
     if tramite.estado_id != 1 {
         return Err(ProcesarBajaError::NoPendiente);
@@ -69,7 +69,7 @@ pub async fn procesar_solicitud_baja(
          set registrador_id = $1,
              estado_id = 2
          where id = $2
-           and tipo_id = 2
+           and tipo_id in (1, 2)
            and estado_id = 1
            and registrador_id is null;",
     )

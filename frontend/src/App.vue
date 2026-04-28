@@ -10,7 +10,7 @@ export default {
 </script>
 
 <template>
-  <Toaster />
+  <Toaster class="bg-red-" />
   <RouterView />
 </template>
 

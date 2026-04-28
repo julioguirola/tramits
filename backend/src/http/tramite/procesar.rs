@@ -13,7 +13,7 @@ use tracing::error;
 use crate::{
     AppState,
     repos::{
-        tramite::procesar::{ProcesarBajaError, procesar_solicitud_baja},
+        tramite::procesar::{ProcesarBajaError, procesar_solicitud},
         usuario::UsuarioJwt,
     },
     tipos::{Respuesta, Ress},
@@ -36,12 +36,12 @@ pub async fn procesar_solicitud_h(
             .into_response();
     }
 
-    match procesar_solicitud_baja(&state.db, &usr, tramite_id).await {
+    match procesar_solicitud(&state.db, &usr, tramite_id).await {
         Ok(_) => (
             StatusCode::OK,
             Js(json!(Ress::<()> {
                 message: Respuesta::Success.as_str(),
-                description: "Solicitud de baja en proceso",
+                description: "Solicitud en proceso",
                 data: None
             })),
         )
@@ -55,11 +55,11 @@ pub async fn procesar_solicitud_h(
             })),
         )
             .into_response(),
-        Err(ProcesarBajaError::NoEsBaja) => (
+        Err(ProcesarBajaError::TipoNoSoportado) => (
             StatusCode::BAD_REQUEST,
             Js(json!(Ress::<u8> {
                 message: Respuesta::Warn.as_str(),
-                description: "Solo se pueden procesar solicitudes de baja",
+                description: "Solo se pueden procesar solicitudes de alta o baja",
                 data: None
             })),
         )
@@ -106,7 +106,7 @@ pub async fn procesar_solicitud_h(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Js(json!(Ress::<u8> {
                     message: Respuesta::Error.as_str(),
-                    description: "Error procesando solicitud de baja",
+                    description: "Error procesando solicitud",
                     data: None
                 })),
             )

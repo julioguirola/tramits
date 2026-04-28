@@ -48,7 +48,11 @@ export default {
     <SelectContent>
       <SelectGroup>
         <SelectLabel>Bodegas</SelectLabel>
-        <SelectItem v-for="bodega in bodegas" :value="bodega.id">
+        <SelectItem
+          v-for="bodega in bodegas"
+          :value="bodega.id"
+          :key="bodega.id"
+        >
           {{ bodega.nombre }}
         </SelectItem>
       </SelectGroup>
