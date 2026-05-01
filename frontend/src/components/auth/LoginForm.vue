@@ -62,7 +62,7 @@ export default {
 </script>
 
 <template>
-  <Card class="w-93.75">
+  <Card class="w-full shadow-xl shadow-emerald-100/50 border-emerald-100/80">
     <CardHeader>
       <CardTitle>Inicia sesión en tu cuenta</CardTitle>
       <CardDescription>

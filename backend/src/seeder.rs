@@ -147,11 +147,21 @@ async fn hashear(password: &str) -> Result<String, sqlx::Error> {
         .map(|h| h.to_string())
 }
 
-async fn crear_usuarios(
+async fn persona_id_por_oficina(
     pool: &Pool<Postgres>,
     oficina_id: i32,
-    config: &EnvConfig,
-) -> Result<(), sqlx::Error> {
+    offset: i64,
+) -> Result<sqlx::types::Uuid, sqlx::Error> {
+    sqlx::query_scalar(
+        "select p.id from persona p join nucleo n on p.nucleo_id = n.id join bodega bo on bo.id = n.bodega_id where bo.oficina_id = $1 offset $2 limit 1;",
+    )
+    .bind(oficina_id)
+    .bind(offset)
+    .fetch_one(pool)
+    .await
+}
+
+async fn crear_usuarios_base(pool: &Pool<Postgres>, config: &EnvConfig) -> Result<(), sqlx::Error> {
     // Administrador
     let persona_id: sqlx::types::Uuid = sqlx::query_scalar("select id from persona limit 1;")
         .fetch_one(pool)
@@ -169,13 +179,7 @@ async fn crear_usuarios(
     info!("Usuario administrador creado: {}", &config.admin_email);
 
     // Consumidor
-    let persona_id_consumidor: sqlx::types::Uuid =
-        sqlx::query_scalar(
-                "select p.id from persona p join nucleo n on p.nucleo_id = n.id join bodega bo on bo.id = n.bodega_id where bo.oficina_id = $1 offset 1 limit 1;"
-            )
-            .bind(oficina_id)
-            .fetch_one(pool)
-            .await?;
+    let persona_id_consumidor: sqlx::types::Uuid = persona_id_por_oficina(pool, 1, 1).await?;
 
     sqlx::query(
         "insert into usuario (email, pass_word, persona_id, rol_id) values ($1, $2, $3, 1);",
@@ -189,10 +193,7 @@ async fn crear_usuarios(
     info!("Usuario consumidor creado: {}", &config.consumer_email);
 
     // Registrador
-    let persona_id_registrador: sqlx::types::Uuid =
-        sqlx::query_scalar("select id from persona offset 2 limit 1;")
-            .fetch_one(pool)
-            .await?;
+    let persona_id_registrador: sqlx::types::Uuid = persona_id_por_oficina(pool, 1, 2).await?;
 
     sqlx::query(
         "insert into usuario (email, pass_word, persona_id, rol_id, oficina_id) values ($1, $2, $3, 2, $4);",
@@ -200,11 +201,119 @@ async fn crear_usuarios(
     .bind(&config.registrar_email)
     .bind(hashear(&config.registrar_password).await?)
     .bind(persona_id_registrador)
-    .bind(oficina_id)
+    .bind(1)
     .execute(pool)
     .await?;
 
     info!("Usuario registrador creado: {}", &config.registrar_email);
+
+    Ok(())
+}
+
+async fn crear_registradores_por_oficina(
+    pool: &Pool<Postgres>,
+    config: &EnvConfig,
+) -> Result<(), sqlx::Error> {
+    let oficinas = sqlx::query("select id from oficina;")
+        .fetch_all(pool)
+        .await?;
+
+    let personas = sqlx::query(
+        "select distinct on (bo.oficina_id) bo.oficina_id, p.id
+         from persona p
+         join nucleo n on p.nucleo_id = n.id
+         join bodega bo on bo.id = n.bodega_id
+         order by bo.oficina_id, p.id;",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let mut inserts = String::new();
+    for row in oficinas {
+        let oficina_id: i32 = row.get("id");
+        if oficina_id == 1 {
+            continue;
+        }
+
+        let persona_row = personas
+            .iter()
+            .find(|r| r.get::<i32, _>("oficina_id") == oficina_id)
+            .ok_or(sqlx::Error::RowNotFound)?;
+        let persona_id: sqlx::types::Uuid = persona_row.get("id");
+        let email = format!("registrador{}@seed.local", oficina_id).replace("'", " ");
+        let pass_hash = hashear(&config.registrar_password)
+            .await?
+            .replace("'", " ");
+
+        inserts += &format!(
+            "insert into usuario (email, pass_word, persona_id, rol_id, oficina_id) values ('{}', '{}', '{}', 2, {});\n",
+            email, pass_hash, persona_id, oficina_id
+        );
+    }
+
+    if !inserts.is_empty() {
+        sqlx::raw_sql(&inserts).execute(pool).await?;
+    }
+
+    Ok(())
+}
+
+async fn generar_tramites(pool: &Pool<Postgres>, cantidad: usize) -> Result<(), sqlx::Error> {
+    let personas = sqlx::query(
+        "select p.id, p.nucleo_id, bo.oficina_id
+         from persona p
+         join nucleo n on p.nucleo_id = n.id
+         join bodega bo on bo.id = n.bodega_id;",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    let registradores = sqlx::query("select id, oficina_id from usuario where rol_id = 2;")
+        .fetch_all(pool)
+        .await?;
+
+    let mut inserts = String::new();
+
+    for _ in 0..cantidad {
+        let persona_row = &personas[rand::random_range::<usize, _>(0..personas.len())];
+        let persona_id: sqlx::types::Uuid = persona_row.get("id");
+        let nucleo_id: i32 = persona_row.get("nucleo_id");
+        let oficina_id: i32 = persona_row.get("oficina_id");
+
+        let tipo_id = rand::random_range::<i32, _>(1..=2);
+        let estado_id = rand::random_range::<i32, _>(1..=4);
+
+        let registrador_id: Option<sqlx::types::Uuid> = if estado_id == 1 {
+            None
+        } else {
+            let reg_row = registradores
+                .iter()
+                .find(|r| r.get::<i32, _>("oficina_id") == oficina_id)
+                .unwrap_or(&registradores[0]);
+            Some(reg_row.get("id"))
+        };
+
+        let fecha_finalizado = if estado_id == 3 || estado_id == 4 {
+            "current_date"
+        } else {
+            "null"
+        };
+
+        if let Some(reg_id) = registrador_id {
+            inserts += &format!(
+                "insert into tramite (persona_id, registrador_id, nucleo_id, tipo_id, estado_id, fecha_finalizado) values ('{}', '{}', {}, {}, {}, {});\n",
+                persona_id, reg_id, nucleo_id, tipo_id, estado_id, fecha_finalizado
+            );
+        } else {
+            inserts += &format!(
+                "insert into tramite (persona_id, nucleo_id, tipo_id, estado_id) values ('{}', {}, {}, {});\n",
+                persona_id, nucleo_id, tipo_id, estado_id
+            );
+        }
+    }
+
+    let result = sqlx::raw_sql(&inserts).execute(pool).await?;
+    info!("Tramites creados: {}", result.rows_affected());
 
     Ok(())
 }
@@ -243,9 +352,21 @@ async fn main() -> Result<(), sqlx::Error> {
         tracing::error!("Error generando personas: {}", e);
         e
     })?;
-    info!("Creando usuarios iniciales");
-    crear_usuarios(&pool, 1, &config).await.map_err(|e| {
+    info!("Creando usuarios base");
+    crear_usuarios_base(&pool, &config).await.map_err(|e| {
         tracing::error!("Error creando usuarios iniciales: {}", e);
+        e
+    })?;
+    info!("Creando registradores por oficina");
+    crear_registradores_por_oficina(&pool, &config)
+        .await
+        .map_err(|e| {
+            tracing::error!("Error creando registradores por oficina: {}", e);
+            e
+        })?;
+    info!("Generando tramites");
+    generar_tramites(&pool, 2000).await.map_err(|e| {
+        tracing::error!("Error generando tramites: {}", e);
         e
     })?;
     info!("Seeding completado");
