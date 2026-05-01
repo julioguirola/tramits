@@ -9,6 +9,19 @@ import { api } from "@/lib/utils";
 import router from "@/router";
 import { useUsuarioStore } from "@/stores/usuario.store";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+import { ChevronsUpDown, LogOut } from "lucide-vue-next";
+
 const props = defineProps<{
   user: {
     nombre: string;

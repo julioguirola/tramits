@@ -23,9 +23,9 @@ services:
       dockerfile: dockerfile
     environment:
       - DB_HOST=${DB_HOST}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
       - DB_PORT=${DB_PORT}
       - ENVIRONMENT=${ENVIRONMENT}
       - RUST_LOG=${RUST_LOG}
@@ -40,7 +40,7 @@ services:
       - REGISTRAR_PASSWORD=${REGISTRAR_PASSWORD}
       - REDIS_URL=${REDIS_URL}
     ports:
-      - 3030:3030
+      - ${PORT}:${PORT}
     volumes:
       - ./backend/src:/app/src
     command: cargo run

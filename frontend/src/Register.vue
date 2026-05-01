@@ -8,5 +8,6 @@ export default {
 </script>
 
 <template>
+  <div></div>
   <SignupForm />
 </template>

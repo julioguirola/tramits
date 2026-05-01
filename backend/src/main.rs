@@ -4,7 +4,7 @@ use axum::{
     middleware::{self},
     routing::{any, get, post},
 };
-use deadpool_redis::{Config as RedisConfig, Pool as RedisPool, Runtime};
+use deadpool_redis::{Config as RedisConfig, Runtime};
 use std::sync::Arc;
 use tracing::info;
 mod config;
@@ -14,7 +14,7 @@ mod middlewares;
 mod repos;
 mod tipos;
 use crate::http::{bodega, municipio, nucleo, oficina, persona, provincia, tramite, usuario};
-use crate::middlewares::{auth::auth_m, cache::cache_m, cors::cors_m, logger::logger_m};
+use crate::middlewares::{auth::auth_m, cors::cors_m, logger::logger_m};
 use config::EnvConfig;
 use redis::cmd;
 use sqlx::{Pool, Postgres};
@@ -24,7 +24,6 @@ use tracing_subscriber::{EnvFilter, FmtSubscriber};
 struct AppState {
     env_config: Arc<EnvConfig>,
     db: Pool<Postgres>,
-    redis: RedisPool,
 }
 
 #[tokio::main]
@@ -49,7 +48,6 @@ async fn main() -> Result<(), sqlx::Error> {
     let shared_state = Arc::new(AppState {
         env_config: Arc::new(config),
         db,
-        redis,
     });
     let state_clone = shared_state.clone();
 

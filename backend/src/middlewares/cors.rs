@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::AppState;
 use axum::{
     body::Body,
     extract::{Request, State},
@@ -7,10 +8,13 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-
-use crate::AppState;
+use tracing::debug;
 
 pub async fn cors_m(State(estado): State<Arc<AppState>>, req: Request, next: Next) -> Response {
+    debug!("CORS Middleware: Processing request for {}", req.uri());
+
+    debug!("SPA URL env {}", estado.env_config.spa_url);
+
     if req.method() == Method::OPTIONS {
         let option_res = Response::builder()
             .status(StatusCode::NO_CONTENT)

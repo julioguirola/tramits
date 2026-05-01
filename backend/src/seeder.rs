@@ -12,23 +12,35 @@ use sqlx::{Pool, Postgres, Row};
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<i32, sqlx::Error> {
-    let municipio_id: i32 =
-        sqlx::query_scalar("select id from municipio where nombre = 'CIEGO DE AVILA' limit 1;")
-            .fetch_one(pool)
-            .await?;
+async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
+    let result_muncipios = sqlx::query("select id from municipio;")
+        .fetch_all(pool)
+        .await?;
 
-    let oficina_id: i32 = sqlx::query_scalar(
-        "insert into oficina (nombre, municipio_id) values ($1, $2) returning id;",
-    )
-    .bind((CityName().fake::<String>() + " Ofic").replace("'", " "))
-    .bind(municipio_id)
-    .fetch_one(pool)
-    .await?;
+    let ids_municipios: Vec<i32> = result_muncipios
+        .iter()
+        .map(|r| r.get::<i32, _>("id"))
+        .collect();
 
-    info!("Oficina creada: id={}", oficina_id);
+    let mut inserts = String::from("");
 
-    Ok(oficina_id)
+    for id in ids_municipios {
+        let cant_oficinas = rand::random_range::<u8, _>(1..=3);
+
+        for _ in 0..cant_oficinas {
+            inserts += &format!(
+                "insert into oficina (nombre, municipio_id) values ('{}', {});\n",
+                (CityName().fake::<String>() + " Ofic").replace("'", " "),
+                id,
+            );
+        }
+    }
+
+    let result = sqlx::raw_sql(&inserts).execute(pool).await?;
+
+    info!("Oficinas creadas: {}", result.rows_affected());
+
+    Ok(())
 }
 
 async fn generar_bodegas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
@@ -140,6 +152,7 @@ async fn crear_usuarios(
     oficina_id: i32,
     config: &EnvConfig,
 ) -> Result<(), sqlx::Error> {
+    // Administrador
     let persona_id: sqlx::types::Uuid = sqlx::query_scalar("select id from persona limit 1;")
         .fetch_one(pool)
         .await?;
@@ -157,7 +170,10 @@ async fn crear_usuarios(
 
     // Consumidor
     let persona_id_consumidor: sqlx::types::Uuid =
-        sqlx::query_scalar("select id from persona offset 1 limit 1;")
+        sqlx::query_scalar(
+                "select p.id from persona p join nucleo n on p.nucleo_id = n.id join bodega bo on bo.id = n.bodega_id where bo.oficina_id = $1 offset 1 limit 1;"
+            )
+            .bind(oficina_id)
             .fetch_one(pool)
             .await?;
 
@@ -208,7 +224,7 @@ async fn main() -> Result<(), sqlx::Error> {
     })?;
 
     info!("Generando oficina inicial");
-    let oficina_id = generar_oficinas(&pool).await.map_err(|e| {
+    generar_oficinas(&pool).await.map_err(|e| {
         tracing::error!("Error generando oficinas: {}", e);
         e
     })?;
@@ -228,12 +244,10 @@ async fn main() -> Result<(), sqlx::Error> {
         e
     })?;
     info!("Creando usuarios iniciales");
-    crear_usuarios(&pool, oficina_id, &config)
-        .await
-        .map_err(|e| {
-            tracing::error!("Error creando usuarios iniciales: {}", e);
-            e
-        })?;
+    crear_usuarios(&pool, 1, &config).await.map_err(|e| {
+        tracing::error!("Error creando usuarios iniciales: {}", e);
+        e
+    })?;
     info!("Seeding completado");
     Ok(())
 }
