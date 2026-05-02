@@ -24,6 +24,17 @@ import Spinner from "@/components/ui/spinner/Spinner.vue";
 import { api } from "@/lib/utils";
 
 export default {
+  props: {
+    bloqueado: {
+      type: Boolean,
+      default: false,
+    },
+    motivoBloqueo: {
+      type: String,
+      default: "",
+    },
+  },
+  emits: ["created"],
   components: {
     Button,
     Card,
@@ -65,6 +76,7 @@ export default {
       });
       if (res.status === 201) {
         this.dialog_open = false;
+        this.$emit("created");
       }
       this.loading_solicitar = false;
     },
@@ -84,7 +96,7 @@ export default {
     <CardContent class="space-y-4">
       <Dialog v-model:open="dialog_open">
         <DialogTrigger as-child>
-          <Button> Solicitar Baja </Button>
+          <Button :disabled="bloqueado"> Solicitar Baja </Button>
         </DialogTrigger>
 
         <DialogContent class="sm:max-w-106.25">
@@ -108,6 +120,9 @@ export default {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <p v-if="bloqueado" class="text-sm text-muted-foreground">
+        {{ motivoBloqueo }}
+      </p>
     </CardContent>
   </Card>
 </template>

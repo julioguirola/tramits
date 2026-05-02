@@ -9,10 +9,10 @@ use crate::tipos::{Respuesta, Ress};
 /// Verifica si el usuario tiene una solicitud de baja pendiente
 pub async fn tiene_baja_pendiente(db: &Pool<Postgres>, persona_id: &Uuid) -> Result<bool, Error> {
     let count: i64 = sqlx::query_scalar(
-        "select count(*) from tramite 
-         where persona_id = $1 
-           and tipo_id = 2 
-           and estado_id in (1, 2);",
+         "select count(*) from tramite 
+          where persona_id = $1 
+            and tipo_id = 2 
+            and estado_id in (1, 2);",
     )
     .bind(persona_id)
     .fetch_one(db)

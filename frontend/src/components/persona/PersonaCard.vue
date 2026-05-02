@@ -28,7 +28,7 @@ export default {
   <Card class="flex flex-col gap-4">
     <CardHeader>
       <CardTitle>Información de Persona</CardTitle>
-      <CardDescription>Datos verificados del carnet</CardDescription>
+      <CardDescription>Datos verificados del carné</CardDescription>
     </CardHeader>
     <CardContent>
       <div class="flex flex-col gap-2">
@@ -41,7 +41,7 @@ export default {
           <p>{{ persona.apellido }}</p>
         </div>
         <div>
-          <p class="font-medium text-gray-600">Carnet</p>
+          <p class="font-medium text-gray-600">Carné</p>
           <p>{{ persona.carnet }}</p>
         </div>
         <div>

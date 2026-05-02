@@ -69,6 +69,10 @@ async fn main() -> Result<(), sqlx::Error> {
             "/tramite/{id}/gestionar",
             post(tramite::gestionar::gestionar_tramite_h),
         )
+        .route(
+            "/tramite/{id}/cancelar",
+            post(tramite::cancelar::cancelar_tramite_h),
+        )
         .route("/tramite", get(tramite::historial::get_historial_h))
         .route(
             "/tramite/historial/registrador",

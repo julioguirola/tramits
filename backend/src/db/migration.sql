@@ -77,7 +77,8 @@ insert into tramite_estado (id, nombre) values
 (1, 'Pendiente'),
 (2, 'En proceso'),
 (3, 'Completado'),
-(4, 'Rechazado');
+(4, 'Rechazado'),
+(5, 'Cancelado');
 
 create table usuario (
     id uuid default gen_random_uuid() primary key,

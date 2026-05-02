@@ -35,7 +35,7 @@ export default {
           : "Sin núcleo asignado";
       return [
         {
-          label: "Nucleo",
+          label: "Núcleo",
           valor: nucleoLabel,
           icon: this.icons.Home,
         },

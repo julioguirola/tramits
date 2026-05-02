@@ -67,7 +67,7 @@ export default {
       <CardTitle>Inicia sesión en tu cuenta</CardTitle>
       <CardDescription>
         Ingresa tu correo electrónico a continuación para iniciar sesión en tu
-        cuenta
+        cuenta.
       </CardDescription>
     </CardHeader>
     <CardContent>

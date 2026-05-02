@@ -41,6 +41,17 @@ interface Nucleo {
 }
 
 export default {
+  props: {
+    bloqueado: {
+      type: Boolean,
+      default: false,
+    },
+    motivoBloqueo: {
+      type: String,
+      default: "",
+    },
+  },
+  emits: ["created"],
   components: {
     Button,
     Card,
@@ -124,6 +135,7 @@ export default {
         if (res?.status === 201) {
           this.open = false;
           this.nucleo_id = null;
+          this.$emit("created");
         }
       } catch (error) {
         console.error("Error solicitando alta:", error);
@@ -149,15 +161,15 @@ export default {
     <CardContent class="space-y-4">
       <Dialog v-model:open="open">
         <DialogTrigger as-child>
-          <Button> Solicitar Alta </Button>
+          <Button :disabled="bloqueado"> Solicitar Alta </Button>
         </DialogTrigger>
         <DialogContent class="max-w-md">
           <DialogHeader>
             <DialogTitle>Solicitar Alta</DialogTitle>
-            <DialogDescription>
-              Selecciona el núcleo al que deseas unirte. Completa todos los
-              filtros para elegir tu núcleo.
-            </DialogDescription>
+          <DialogDescription>
+            Selecciona el núcleo al que deseas unirte. Completa todos los
+            filtros para elegir tu núcleo.
+          </DialogDescription>
           </DialogHeader>
 
           <div class="space-y-4 py-4">
@@ -222,6 +234,9 @@ export default {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <p v-if="bloqueado" class="text-sm text-muted-foreground">
+        {{ motivoBloqueo }}
+      </p>
     </CardContent>
   </Card>
 </template>

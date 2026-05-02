@@ -8,7 +8,9 @@ export default {
 </script>
 
 <template>
-  <div class="min-h-[100svh] overflow-y-auto bg-[#f7fbf8] text-slate-900 auth-font-body pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+  <div
+    class="min-h-[100svh] overflow-y-auto bg-[#f7fbf8] text-slate-900 auth-font-body pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+  >
     <div class="relative overflow-x-hidden">
       <div
         class="pointer-events-none absolute -left-20 top-12 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.3),rgba(16,185,129,0))] blur-3xl"
@@ -27,25 +29,29 @@ export default {
             Bienvenido a Tramits
           </div>
           <div class="space-y-4">
-            <h1 class="auth-font-display text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl">
-              Crea tu cuenta y comienza tus tramites hoy mismo.
+            <h1
+              class="auth-font-display text-4xl font-semibold leading-tight text-slate-900 sm:text-5xl"
+            >
+              Crea tu cuenta y comienza tus trámites hoy mismo.
             </h1>
             <p class="max-w-xl text-base text-slate-600 sm:text-lg">
-              Valida tu identidad con el carnet, completa tus datos y recibe
+              Valida tu identidad con el carné, completa tus datos y recibe
               actualizaciones en tiempo real desde cualquier dispositivo.
             </p>
           </div>
-          <div class="rounded-3xl border border-emerald-100 bg-white/60 p-4 shadow-sm">
+          <div
+            class="rounded-3xl border border-emerald-100 bg-white/60 p-4 shadow-sm"
+          >
             <img
               src="/tramites.webp"
-              alt="Ilustracion de tramites"
+              alt="Ilustración de trámites"
               class="h-56 w-full rounded-2xl object-cover"
             />
           </div>
           <div class="grid gap-4 sm:grid-cols-2">
             <div class="rounded-2xl bg-white/80 p-5 shadow-sm ring-1 ring-emerald-100">
               <h3 class="text-base font-semibold text-slate-900">
-                Verificacion rapida
+                Verificación rápida
               </h3>
               <p class="mt-2 text-sm text-slate-600">
                 Confirmamos tu identidad en segundos para evitar errores en el

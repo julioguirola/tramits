@@ -55,7 +55,7 @@ pub async fn gestionar_tramite(
     if tramite.registrador_id != Some(usr.sub) {
         return Err(GestionarTramiteError::NoEsTuSolicitud);
     }
-    if tramite.estado_id == 3 || tramite.estado_id == 4 {
+    if tramite.estado_id == 3 || tramite.estado_id == 4 || tramite.estado_id == 5 {
         return Err(GestionarTramiteError::YaFinalizado);
     }
     if tramite.estado_id != 2 {

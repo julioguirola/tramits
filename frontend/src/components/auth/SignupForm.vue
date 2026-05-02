@@ -109,7 +109,7 @@ export default {
         <FieldGroup>
           <div class="flex gap-4">
             <Field>
-              <FieldLabel for="carnet"> Carnet </FieldLabel>
+                <FieldLabel for="carnet"> Carné </FieldLabel>
               <Input
                 id="carnet"
                 type="text"
@@ -140,14 +140,14 @@ export default {
                   v-model="email"
                   :disabled="persona == undefined"
                 />
-                <FieldDescription>
-                  Usaremos esta información para contactarte. No compartiremos
-                  tu correo electrónico con nadie más.
-                </FieldDescription>
+          <FieldDescription>
+            Usaremos esta información para contactarte. No compartiremos tu
+            correo electrónico con nadie más.
+          </FieldDescription>
               </Field>
             </HoverCardTrigger>
             <HoverCardContent v-if="persona == undefined" class="bg-[#cdffd9]"
-              >Introduzca su carnet primero</HoverCardContent
+              >Introduzca su carné primero</HoverCardContent
             >
           </HoverCard>
           <HoverCard>
@@ -168,7 +168,7 @@ export default {
               </Field>
             </HoverCardTrigger>
             <HoverCardContent v-if="persona == undefined" class="bg-[#cdffd9]"
-              >Introduzca su carnet primero</HoverCardContent
+              >Introduzca su carné primero</HoverCardContent
             >
           </HoverCard>
           <FieldGroup>

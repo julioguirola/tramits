@@ -241,9 +241,7 @@ async fn crear_registradores_por_oficina(
             .ok_or(sqlx::Error::RowNotFound)?;
         let persona_id: sqlx::types::Uuid = persona_row.get("id");
         let email = format!("registrador{}@seed.local", oficina_id).replace("'", " ");
-        let pass_hash = hashear(&config.registrar_password)
-            .await?
-            .replace("'", " ");
+        let pass_hash = hashear(&config.registrar_password).await?.replace("'", " ");
 
         inserts += &format!(
             "insert into usuario (email, pass_word, persona_id, rol_id, oficina_id) values ('{}', '{}', '{}', 2, {});\n",
@@ -281,9 +279,9 @@ async fn generar_tramites(pool: &Pool<Postgres>, cantidad: usize) -> Result<(), 
         let oficina_id: i32 = persona_row.get("oficina_id");
 
         let tipo_id = rand::random_range::<i32, _>(1..=2);
-        let estado_id = rand::random_range::<i32, _>(1..=4);
+        let estado_id = rand::random_range::<i32, _>(1..=5);
 
-        let registrador_id: Option<sqlx::types::Uuid> = if estado_id == 1 {
+        let registrador_id: Option<sqlx::types::Uuid> = if estado_id == 1 || estado_id == 5 {
             None
         } else {
             let reg_row = registradores
@@ -293,7 +291,7 @@ async fn generar_tramites(pool: &Pool<Postgres>, cantidad: usize) -> Result<(), 
             Some(reg_row.get("id"))
         };
 
-        let fecha_finalizado = if estado_id == 3 || estado_id == 4 {
+        let fecha_finalizado = if estado_id == 3 || estado_id == 4 || estado_id == 5 {
             "current_date"
         } else {
             "null"
