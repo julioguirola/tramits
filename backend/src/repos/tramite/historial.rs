@@ -20,6 +20,8 @@ pub async fn get_historial_tramites(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
     estado_id: Option<i32>,
+    limit: Option<usize>,
+    offset: Option<usize>,
 ) -> Result<Vec<TramiteHistorial>, Error> {
     let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where id = $1;")
         .bind(usr.sub)
@@ -48,13 +50,29 @@ pub async fn get_historial_tramites(
 
     let mut args = sqlx::postgres::PgArguments::default();
     let _ = args.add(persona_id);
+    let mut param_count = 1;
 
     if let Some(estado) = estado_id {
-        query.push_str(" and t.estado_id = $2");
+        param_count += 1;
+        query.push_str(&format!(" and t.estado_id = ${}", param_count));
         let _ = args.add(estado);
     }
 
-    query.push_str(" order by t.fecha_solicitud desc;");
+    query.push_str(" order by t.fecha_solicitud desc");
+
+    if let Some(lim) = limit {
+        param_count += 1;
+        query.push_str(&format!(" limit ${}", param_count));
+        let _ = args.add(lim as i64);
+    }
+
+    if let Some(off) = offset {
+        param_count += 1;
+        query.push_str(&format!(" offset ${}", param_count));
+        let _ = args.add(off as i64);
+    }
+
+    query.push_str(";");
 
     let tramites = sqlx::query_as_with::<_, TramiteHistorial, _>(&query, args)
         .fetch_all(db)
@@ -68,6 +86,8 @@ pub async fn get_todas_solicitudes(
     usr: &UsuarioJwt,
     estado_id: Option<i32>,
     asignadas: Option<bool>,
+    limit: Option<usize>,
+    offset: Option<usize>,
 ) -> Result<Vec<TramiteHistorial>, Error> {
     let mut query = String::from(
         "select 
@@ -93,9 +113,7 @@ pub async fn get_todas_solicitudes(
     let mut args = sqlx::postgres::PgArguments::default();
     let mut param_count = 0;
 
-    // Si es Registrador, filtrar por oficina
     if usr.rol == "Registrador" {
-        // Obtener oficina_id del registrador
         let oficina_id: Option<i32> =
             sqlx::query_scalar("select oficina_id from usuario where id = $1;")
                 .bind(usr.sub)
@@ -114,7 +132,6 @@ pub async fn get_todas_solicitudes(
             let _ = args.add(usr.sub);
         }
     }
-    // Si es Administrador, no filtrar por oficina (ve todas)
 
     if let Some(estado) = estado_id {
         param_count += 1;
@@ -122,11 +139,106 @@ pub async fn get_todas_solicitudes(
         let _ = args.add(estado);
     }
 
-    query.push_str(" order by t.fecha_solicitud desc;");
+    query.push_str(" order by t.fecha_solicitud desc");
+
+    if let Some(lim) = limit {
+        param_count += 1;
+        query.push_str(&format!(" limit ${}", param_count));
+        let _ = args.add(lim as i64);
+    }
+
+    if let Some(off) = offset {
+        param_count += 1;
+        query.push_str(&format!(" offset ${}", param_count));
+        let _ = args.add(off as i64);
+    }
+
+    query.push_str(";");
 
     let tramites = sqlx::query_as_with::<_, TramiteHistorial, _>(&query, args)
         .fetch_all(db)
         .await?;
 
     Ok(tramites)
+}
+
+pub async fn get_historial_tramites_count(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+    estado_id: Option<i32>,
+) -> Result<i64, Error> {
+    let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where id = $1;")
+        .bind(usr.sub)
+        .fetch_one(db)
+        .await?;
+
+    let mut query = String::from("select count(*) from tramite t where t.persona_id = $1");
+    let mut args = sqlx::postgres::PgArguments::default();
+    let _ = args.add(persona_id);
+
+    if let Some(estado) = estado_id {
+        query.push_str(" and t.estado_id = $2");
+        let _ = args.add(estado);
+    }
+
+    query.push_str(";");
+
+    let count: i64 = sqlx::query_as_with::<_, (i64,), _>(&query, args)
+        .fetch_one(db)
+        .await?
+        .0;
+
+    Ok(count)
+}
+
+pub async fn get_todas_solicitudes_count(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+    estado_id: Option<i32>,
+    asignadas: Option<bool>,
+) -> Result<i64, Error> {
+    let mut query = String::from(
+        "select count(*) from tramite t
+         join nucleo n on n.id = t.nucleo_id
+         join bodega b on b.id = n.bodega_id
+         where 1=1",
+    );
+
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 0;
+
+    if usr.rol == "Registrador" {
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
+
+        if let Some(oficina) = oficina_id {
+            param_count += 1;
+            query.push_str(&format!(" and b.oficina_id = ${}", param_count));
+            let _ = args.add(oficina);
+        }
+
+        if asignadas.unwrap_or(false) {
+            param_count += 1;
+            query.push_str(&format!(" and t.registrador_id = ${}", param_count));
+            let _ = args.add(usr.sub);
+        }
+    }
+
+    if let Some(estado) = estado_id {
+        param_count += 1;
+        query.push_str(&format!(" and t.estado_id = ${}", param_count));
+        let _ = args.add(estado);
+    }
+
+    query.push_str(";");
+
+    let count: i64 = sqlx::query_as_with::<_, (i64,), _>(&query, args)
+        .fetch_one(db)
+        .await?
+        .0;
+
+    Ok(count)
 }

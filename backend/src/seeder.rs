@@ -363,7 +363,7 @@ async fn main() -> Result<(), sqlx::Error> {
             e
         })?;
     info!("Generando tramites");
-    generar_tramites(&pool, 2000).await.map_err(|e| {
+    generar_tramites(&pool, 10000).await.map_err(|e| {
         tracing::error!("Error generando tramites: {}", e);
         e
     })?;
