@@ -281,6 +281,9 @@ async fn generar_tramites(pool: &Pool<Postgres>, cantidad: usize) -> Result<(), 
         let tipo_id = rand::random_range::<i32, _>(1..=2);
         let estado_id = rand::random_range::<i32, _>(1..=5);
 
+        let dias_atras = rand::random_range::<i64, _>(0..365);
+        let fecha_solicitud = format!("current_date - interval '{} days'", dias_atras);
+
         let registrador_id: Option<sqlx::types::Uuid> = if estado_id == 1 || estado_id == 5 {
             None
         } else {
@@ -299,13 +302,13 @@ async fn generar_tramites(pool: &Pool<Postgres>, cantidad: usize) -> Result<(), 
 
         if let Some(reg_id) = registrador_id {
             inserts += &format!(
-                "insert into tramite (persona_id, registrador_id, nucleo_id, tipo_id, estado_id, fecha_finalizado) values ('{}', '{}', {}, {}, {}, {});\n",
-                persona_id, reg_id, nucleo_id, tipo_id, estado_id, fecha_finalizado
+                "insert into tramite (persona_id, registrador_id, nucleo_id, tipo_id, estado_id, fecha_solicitud, fecha_finalizado) values ('{}', '{}', {}, {}, {}, {}, {});\n",
+                persona_id, reg_id, nucleo_id, tipo_id, estado_id, fecha_solicitud, fecha_finalizado
             );
         } else {
             inserts += &format!(
-                "insert into tramite (persona_id, nucleo_id, tipo_id, estado_id) values ('{}', {}, {}, {});\n",
-                persona_id, nucleo_id, tipo_id, estado_id
+                "insert into tramite (persona_id, nucleo_id, tipo_id, estado_id, fecha_solicitud) values ('{}', {}, {}, {}, {});\n",
+                persona_id, nucleo_id, tipo_id, estado_id, fecha_solicitud
             );
         }
     }

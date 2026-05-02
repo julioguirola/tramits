@@ -78,6 +78,10 @@ async fn main() -> Result<(), sqlx::Error> {
             "/tramite/historial/registrador",
             get(tramite::historial_registrador::get_historial_registrador_h),
         )
+        .route(
+            "/tramite/estadisticas",
+            get(tramite::estadisticas::get_estadisticas_h),
+        )
         .route("/usuario/me", get(usuario::me_h))
         .route("/provincia", get(provincia::get_provincias_h))
         .route("/municipio", get(municipio::get_municipios_h))

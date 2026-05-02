@@ -29,6 +29,7 @@ import {
   History,
   Users,
   UserRound,
+  BarChart3,
 } from "lucide-vue-next";
 import DashboardUser from "@/components/dashboard/DashboardUser.vue";
 import SidebarMobileClose from "@/components/common/SidebarMobileClose.vue";
@@ -90,6 +91,11 @@ export default {
             icon: this.icons.History,
             to: "/dashboard/historial",
           },
+          {
+            label: "Estadísticas",
+            icon: this.icons.BarChart3,
+            to: "/dashboard/estadisticas",
+          },
         ];
       }
       if (tipo === "Administrador") {
@@ -112,6 +118,7 @@ export default {
         "nuevo-tramite": "Nuevo trámite",
         tramites: "Solicitudes",
         historial: "Historial",
+        estadisticas: "Estadísticas",
         usuarios: "Usuarios",
       };
       return labels[segment] ?? segment;
@@ -119,7 +126,7 @@ export default {
   },
   data() {
     return {
-      icons: { FilePlus, ClipboardList, History, Users, UserRound },
+      icons: { FilePlus, ClipboardList, History, Users, UserRound, BarChart3 },
     };
   },
   methods: {
