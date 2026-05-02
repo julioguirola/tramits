@@ -7,29 +7,22 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Loader2, RefreshCw } from "lucide-vue-next";
 import {
-  BarChart3,
-  Package,
-  Users,
-  Building2,
-  ClipboardList,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Loader2,
-} from "lucide-vue-next";
-
-interface TramiteTipoCount {
-  nombre: string;
-  count: number;
-}
-
-interface TramiteMesCount {
-  mes: string;
-  count: number;
-}
+  VisXYContainer,
+  VisLine,
+  VisArea,
+  VisAxis,
+} from "@unovis/vue";
+import {
+  ChartContainer,
+  ChartCrosshair,
+  ChartTooltip,
+  ChartTooltipContent,
+  componentToString,
+} from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
 
 interface Estadisticas {
   total_tramites: number;
@@ -41,8 +34,8 @@ interface Estadisticas {
   total_bodegas: number;
   total_nucleos: number;
   total_personas_atendidas: number;
-  tramites_por_tipo: TramiteTipoCount[];
-  tramites_por_mes: TramiteMesCount[];
+  tramites_por_tipo: { nombre: string; count: number }[];
+  tramites_por_mes: { mes: string; count: number }[];
 }
 
 export default {
@@ -50,62 +43,110 @@ export default {
     Card,
     CardContent,
     CardDescription,
-    CardHeader,
     CardTitle,
-    Badge,
+    CardHeader,
     Button,
-    BarChart3,
-    Package,
-    Users,
-    Building2,
-    ClipboardList,
-    CheckCircle,
-    XCircle,
-    Clock,
     Loader2,
+    RefreshCw,
+    VisXYContainer,
+    VisLine,
+    VisArea,
+    VisAxis,
+    ChartContainer,
+    ChartCrosshair,
+    ChartTooltip,
   },
-  data(): {
-    estadisticas: Estadisticas | null;
-    cargando: boolean;
-  } {
+  data() {
     return {
-      estadisticas: null,
+      estadisticas: null as Estadisticas | null,
       cargando: false,
+      error: null as string | null,
     };
   },
   computed: {
-    tieneEstadisticas(): boolean {
-      return this.estadisticas !== null;
+    estadoData() {
+      if (!this.estadisticas) return [];
+      return [
+        { estado: "Pendientes", cantidad: this.estadisticas.pendientes, color: "#f59e0b" },
+        { estado: "En Proceso", cantidad: this.estadisticas.en_proceso, color: "#3b82f6" },
+        { estado: "Completados", cantidad: this.estadisticas.completados, color: "#22c55e" },
+        { estado: "Rechazados", cantidad: this.estadisticas.rechazados, color: "#ef4444" },
+        { estado: "Cancelados", cantidad: this.estadisticas.cancelados, color: "#6b7280" },
+      ];
     },
-    stats(): Estadisticas {
-      return this.estadisticas as Estadisticas;
+    mesesData() {
+      if (!this.estadisticas?.tramites_por_mes) return [];
+      return this.estadisticas.tramites_por_mes.map((t) => ({
+        date: new Date(t.mes + "-01"),
+        cantidad: t.count,
+      }));
     },
-    maxTipoCount(): number {
-      const arr = this.stats.tramites_por_tipo;
-      if (!arr?.length) return 1;
-      return Math.max(...arr.map((t: TramiteTipoCount) => t.count));
+    tiposData() {
+      if (!this.estadisticas?.tramites_por_tipo) return [];
+      return [...this.estadisticas.tramites_por_tipo].sort((a, b) => b.count - a.count);
     },
-    maxMesCount(): number {
-      const arr = this.stats.tramites_por_mes;
-      if (!arr?.length) return 1;
-      return Math.max(...arr.map((m: TramiteMesCount) => m.count));
+    chartConfig() {
+      return {
+        cantidad: {
+          label: "Trámites",
+          color: "#3b82f6",
+        },
+      } satisfies ChartConfig;
+    },
+    getComponentToString() {
+      return () => componentToString;
+    },
+    getChartTooltipContent() {
+      return () => ChartTooltipContent;
     },
   },
   methods: {
     async cargarEstadisticas() {
       this.cargando = true;
+      this.error = null;
       try {
         const res = await api.get("/tramite/estadisticas");
         if (res?.status === 200 && res.data?.data) {
           this.estadisticas = res.data.data;
+        } else {
+          this.error = "Error al cargar las estadísticas";
         }
+      } catch (err: any) {
+        this.error =
+          err.response?.data?.description || "Error al cargar las estadísticas";
+        console.error("Error al cargar estadísticas:", err);
       } finally {
         this.cargando = false;
       }
     },
-    getPorcentaje(value: number): number {
-      if (!this.stats.total_tramites) return 0;
-      return Math.round((value / this.stats.total_tramites) * 100);
+    formatMes(mes: string): string {
+      const parts = mes.split("-");
+      const year = parts[0] || "";
+      const month = parts[1] || "1";
+      const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      return meses[parseInt(month) - 1] + " " + year;
+    },
+    xAccessor(d: any) {
+      return d.date;
+    },
+    yAccessor(d: any) {
+      return d.cantidad;
+    },
+    formatMesShort(d: number | Date): string {
+      const date = new Date(d);
+      return date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+    },
+    crosshairTemplate() {
+      return componentToString(
+        this.chartConfig,
+        ChartTooltipContent,
+        {
+          labelFormatter(d: number | Date) {
+            const date = new Date(d);
+            return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+          },
+        }
+      );
     },
   },
   async mounted() {
@@ -116,149 +157,184 @@ export default {
 
 <template>
   <div class="p-6 w-full space-y-6">
-    <Card>
-      <CardHeader>
-        <CardTitle class="flex items-center gap-2">
-          <BarChart3 class="size-5" />
-          Estadísticas de la Oficina
-        </CardTitle>
-        <CardDescription>
-          Resumen de trámites, almacenes y atención a personas.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div v-if="cargando" class="flex items-center justify-center py-8">
-          <Loader2 class="size-6 animate-spin text-muted-foreground" />
-          <span class="ml-2 text-sm text-muted-foreground"
-            >Cargando estadísticas...</span
-          >
-        </div>
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-2xl font-bold tracking-tight">Estadísticas</h2>
+        <p class="text-muted-foreground">
+          Visualización de datos y métricas de trámites
+        </p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        class="gap-2"
+        @click="cargarEstadisticas"
+        :disabled="cargando"
+      >
+        <RefreshCw v-if="!cargando" class="size-4" />
+        <Loader2 v-else class="size-4 animate-spin" />
+        Actualizar
+      </Button>
+    </div>
 
-        <template v-else-if="tieneEstadisticas">
-          <!-- Tarjetas de resumen -->
-          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div class="rounded-lg border p-4">
+    <div v-if="cargando && !estadisticas" class="flex items-center justify-center py-20">
+      <Loader2 class="size-8 animate-spin text-muted-foreground" />
+      <span class="ml-2 text-muted-foreground">Cargando estadísticas...</span>
+    </div>
+
+    <div v-else-if="error" class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
+      <p class="text-destructive">{{ error }}</p>
+      <Button variant="outline" class="mt-4" @click="cargarEstadisticas">
+        Reintentar
+      </Button>
+    </div>
+
+    <template v-else-if="estadisticas">
+      <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Total Trámites</CardDescription>
+            <CardTitle class="text-3xl">{{ estadisticas.total_tramites }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Pendientes</CardDescription>
+            <CardTitle class="text-3xl text-yellow-600">{{ estadisticas.pendientes }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>En Proceso</CardDescription>
+            <CardTitle class="text-3xl text-blue-600">{{ estadisticas.en_proceso }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Completados</CardDescription>
+            <CardTitle class="text-3xl text-green-600">{{ estadisticas.completados }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Rechazados</CardDescription>
+            <CardTitle class="text-3xl text-red-600">{{ estadisticas.rechazados }}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Bodegas</CardDescription>
+            <CardTitle class="text-3xl">{{ estadisticas.total_bodegas }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Núcleos</CardDescription>
+            <CardTitle class="text-3xl">{{ estadisticas.total_nucleos }}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader class="pb-2">
+            <CardDescription>Personas Atendidas</CardDescription>
+            <CardTitle class="text-3xl">{{ estadisticas.total_personas_atendidas }}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Trámites por Estado</CardTitle>
+            <CardDescription>Distribución actual de trámites</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-3">
               <div
-                class="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2"
+                v-for="item in estadoData"
+                :key="item.estado"
+                class="flex items-center gap-3"
               >
-                <ClipboardList class="size-4" />
-                Total Trámites
+                <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
+                <span class="flex-1 text-sm">{{ item.estado }}</span>
+                <span class="text-sm font-medium">{{ item.cantidad }}</span>
+                <div class="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full"
+                    :style="{
+                      backgroundColor: item.color,
+                      width: estadisticas.total_tramites > 0
+                        ? `${(item.cantidad / estadisticas.total_tramites) * 100}%`
+                        : '0%'
+                    }"
+                  ></div>
+                </div>
               </div>
-              <div class="text-2xl font-bold">{{ stats.total_tramites }}</div>
             </div>
-            <div class="rounded-lg border p-4">
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Tipos de Trámite</CardTitle>
+            <CardDescription>Los 10 tipos más solicitados</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-3">
               <div
-                class="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2"
+                v-for="(tipo, index) in tiposData.slice(0, 10)"
+                :key="tipo.nombre"
+                class="flex items-center gap-3"
               >
-                <Building2 class="size-4" />
-                Bodegas
-              </div>
-              <div class="text-2xl font-bold">{{ stats.total_bodegas }}</div>
-            </div>
-            <div class="rounded-lg border p-4">
-              <div
-                class="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2"
-              >
-                <Package class="size-4" />
-                Núcleos
-              </div>
-              <div class="text-2xl font-bold">{{ stats.total_nucleos }}</div>
-            </div>
-            <div class="rounded-lg border p-4">
-              <div
-                class="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2"
-              >
-                <Users class="size-4" />
-                Personas Atendidas
-              </div>
-              <div class="text-2xl font-bold">
-                {{ stats.total_personas_atendidas }}
+                <span class="text-xs text-muted-foreground w-6">{{ index + 1 }}</span>
+                <span class="flex-1 text-sm truncate">{{ tipo.nombre }}</span>
+                <span class="text-sm font-medium">{{ tipo.count }}</span>
+                <div class="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-primary"
+                    :style="{
+                      width: tiposData.length > 0 && tiposData[0]
+                        ? `${(tipo.count / tiposData[0].count) * 100}%`
+                        : '0%'
+                    }"
+                  ></div>
+                </div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Trámites por Mes</CardTitle>
+          <CardDescription>Evolución mensual de trámites (últimos 12 meses)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer v-if="mesesData.length > 0" :config="chartConfig" class="h-64 w-full">
+            <VisXYContainer :data="mesesData" :height="250">
+              <VisLine :x="xAccessor" :y="yAccessor" color="#3b82f6" :lineWidth="2" />
+              <VisArea :x="xAccessor" :y="yAccessor" color="#3b82f6" :opacity="0.1" />
+              <VisAxis
+                type="x"
+                :x="xAccessor"
+                :tickFormat="formatMesShort"
+              />
+              <VisAxis type="y" :y="yAccessor" />
+              <ChartTooltip />
+              <ChartCrosshair
+                :template="crosshairTemplate"
+                color="#3b82f6"
+              />
+            </VisXYContainer>
+          </ChartContainer>
+          <div v-else class="h-64 flex items-center justify-center text-muted-foreground">
+            No hay datos disponibles
           </div>
-
-          <!-- Estado de trámites -->
-          <div class="mt-6">
-            <h3 class="text-lg font-semibold mb-4">Estado de Trámites</h3>
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              <div class="rounded-lg border p-4 bg-secondary/30">
-                <div
-                  class="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-1"
-                >
-                  <Clock class="size-4 text-secondary-foreground" />
-                  Pendientes
-                </div>
-                <div class="text-2xl font-bold">{{ stats.pendientes }}</div>
-                <div class="text-xs text-muted-foreground mt-1">
-                  {{ getPorcentaje(stats.pendientes) }}% del total
-                </div>
-              </div>
-              <div
-                class="rounded-lg border p-4 bg-yellow-50 dark:bg-yellow-900/20"
-              >
-                <div
-                  class="flex items-center gap-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 mb-1"
-                >
-                  <Clock class="size-4" />
-                  En Proceso
-                </div>
-                <div class="text-2xl font-bold">{{ stats.en_proceso }}</div>
-                <div class="text-xs text-muted-foreground mt-1">
-                  {{ getPorcentaje(stats.en_proceso) }}% del total
-                </div>
-              </div>
-              <div
-                class="rounded-lg border p-4 bg-green-50 dark:bg-green-900/20"
-              >
-                <div
-                  class="flex items-center gap-2 text-sm font-medium text-green-700 dark:text-green-400 mb-1"
-                >
-                  <CheckCircle class="size-4" />
-                  Completados
-                </div>
-                <div class="text-2xl font-bold">{{ stats.completados }}</div>
-                <div class="text-xs text-muted-foreground mt-1">
-                  {{ getPorcentaje(stats.completados) }}% del total
-                </div>
-              </div>
-              <div class="rounded-lg border p-4 bg-red-50 dark:bg-red-900/20">
-                <div
-                  class="flex items-center gap-2 text-sm font-medium text-red-700 dark:text-red-400 mb-1"
-                >
-                  <XCircle class="size-4" />
-                  Rechazados
-                </div>
-                <div class="text-2xl font-bold">{{ stats.rechazados }}</div>
-                <div class="text-xs text-muted-foreground mt-1">
-                  {{ getPorcentaje(stats.rechazados) }}% del total
-                </div>
-              </div>
-              <div
-                class="rounded-lg border p-4 bg-slate-50 dark:bg-slate-900/20"
-              >
-                <div
-                  class="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-400 mb-1"
-                >
-                  <XCircle class="size-4" />
-                  Cancelados
-                </div>
-                <div class="text-2xl font-bold">{{ stats.cancelados }}</div>
-                <div class="text-xs text-muted-foreground mt-1">
-                  {{ getPorcentaje(stats.cancelados) }}% del total
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <div v-else class="py-8 text-center">
-          <BarChart3 class="mx-auto size-12 text-muted-foreground opacity-50" />
-          <p class="mt-4 text-sm text-muted-foreground">
-            No hay estadísticas disponibles.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </template>
   </div>
 </template>
-
