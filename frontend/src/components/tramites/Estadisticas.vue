@@ -323,18 +323,22 @@ export default {
                 :bar-padding="0.1"
               />
               <VisAxis
-                type="x"
-                :x="(d) => d.index"
-                :tick-line="false"
-                :domain-line="false"
-                :grid-line="false"
-              />
-              <VisAxis
-                type="y"
-                :tick-line="false"
-                :domain-line="false"
-                :grid-line="true"
-              />
+                 type="x"
+                 :x="(d) => d.index"
+                 :tick-format="(d) => chartData()[d]?.mes || ''"
+                 :num-ticks="chartData().length"
+                 :tick-line="false"
+                 :domain-line="false"
+                 :grid-line="false"
+               />
+               <VisAxis
+                 type="y"
+                 :tick-format="(d) => Math.round(d)"
+                 :num-ticks="Math.min(10, Math.max(...chartData().map(d => d.count)) + 1)"
+                 :tick-line="false"
+                 :domain-line="false"
+                 :grid-line="true"
+               />
             </VisXYContainer>
             <ChartLegendContent />
           </ChartContainer>
