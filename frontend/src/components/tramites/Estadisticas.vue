@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-vue-next";
+import { VisXYContainer, VisGroupedBar, VisAxis } from "@unovis/vue";
+import { ChartContainer, ChartLegendContent } from "@/components/ui/chart";
 
 interface Estadisticas {
   total_tramites: number;
@@ -34,12 +36,23 @@ export default {
     Button,
     Loader2,
     RefreshCw,
+    VisXYContainer,
+    VisGroupedBar,
+    VisAxis,
+    ChartContainer,
+    ChartLegendContent,
   },
   data() {
     return {
       estadisticas: null as Estadisticas | null,
       cargando: false,
       error: null as string | null,
+      chartConfig: {
+        tramites: {
+          label: "Trámites",
+          color: "var(--chart-1)",
+        },
+      },
     };
   },
   computed: {
@@ -98,6 +111,13 @@ export default {
       } finally {
         this.cargando = false;
       }
+    },
+    chartData() {
+      if (!this.estadisticas) return [];
+      return this.estadisticas.tramites_por_mes.map((item, index) => ({
+        ...item,
+        index,
+      }));
     },
   },
   async mounted() {
@@ -286,6 +306,40 @@ export default {
           </CardContent>
         </Card>
       </div>
+
+      <Card class="mt-6">
+        <CardHeader>
+          <CardTitle>Trámites por Mes</CardTitle>
+          <CardDescription>Distribución mensual de trámites</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer :config="chartConfig" class="h-120 w-full">
+            <VisXYContainer :data="chartData()">
+              <VisGroupedBar
+                :x="(d) => d.index"
+                :y="(d) => d.count"
+                :color="chartConfig.tramites.color"
+                :rounded-corners="4"
+                :bar-padding="0.1"
+              />
+              <VisAxis
+                type="x"
+                :x="(d) => d.index"
+                :tick-line="false"
+                :domain-line="false"
+                :grid-line="false"
+              />
+              <VisAxis
+                type="y"
+                :tick-line="false"
+                :domain-line="false"
+                :grid-line="true"
+              />
+            </VisXYContainer>
+            <ChartLegendContent />
+          </ChartContainer>
+        </CardContent>
+      </Card>
     </template>
   </div>
 </template>
