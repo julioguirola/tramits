@@ -9,20 +9,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, RefreshCw } from "lucide-vue-next";
-import {
-  VisXYContainer,
-  VisLine,
-  VisArea,
-  VisAxis,
-} from "@unovis/vue";
-import {
-  ChartContainer,
-  ChartCrosshair,
-  ChartTooltip,
-  ChartTooltipContent,
-  componentToString,
-} from "@/components/ui/chart";
-import type { ChartConfig } from "@/components/ui/chart";
 
 interface Estadisticas {
   total_tramites: number;
@@ -48,13 +34,6 @@ export default {
     Button,
     Loader2,
     RefreshCw,
-    VisXYContainer,
-    VisLine,
-    VisArea,
-    VisAxis,
-    ChartContainer,
-    ChartCrosshair,
-    ChartTooltip,
   },
   data() {
     return {
@@ -67,37 +46,38 @@ export default {
     estadoData() {
       if (!this.estadisticas) return [];
       return [
-        { estado: "Pendientes", cantidad: this.estadisticas.pendientes, color: "#f59e0b" },
-        { estado: "En Proceso", cantidad: this.estadisticas.en_proceso, color: "#3b82f6" },
-        { estado: "Completados", cantidad: this.estadisticas.completados, color: "#22c55e" },
-        { estado: "Rechazados", cantidad: this.estadisticas.rechazados, color: "#ef4444" },
-        { estado: "Cancelados", cantidad: this.estadisticas.cancelados, color: "#6b7280" },
+        {
+          estado: "Pendientes",
+          cantidad: this.estadisticas.pendientes,
+          color: "#f59e0b",
+        },
+        {
+          estado: "En Proceso",
+          cantidad: this.estadisticas.en_proceso,
+          color: "#3b82f6",
+        },
+        {
+          estado: "Completados",
+          cantidad: this.estadisticas.completados,
+          color: "#22c55e",
+        },
+        {
+          estado: "Rechazados",
+          cantidad: this.estadisticas.rechazados,
+          color: "#ef4444",
+        },
+        {
+          estado: "Cancelados",
+          cantidad: this.estadisticas.cancelados,
+          color: "#6b7280",
+        },
       ];
-    },
-    mesesData() {
-      if (!this.estadisticas?.tramites_por_mes) return [];
-      return this.estadisticas.tramites_por_mes.map((t) => ({
-        date: new Date(t.mes + "-01"),
-        cantidad: t.count,
-      }));
     },
     tiposData() {
       if (!this.estadisticas?.tramites_por_tipo) return [];
-      return [...this.estadisticas.tramites_por_tipo].sort((a, b) => b.count - a.count);
-    },
-    chartConfig() {
-      return {
-        cantidad: {
-          label: "Trámites",
-          color: "#3b82f6",
-        },
-      } satisfies ChartConfig;
-    },
-    getComponentToString() {
-      return () => componentToString;
-    },
-    getChartTooltipContent() {
-      return () => ChartTooltipContent;
+      return [...this.estadisticas.tramites_por_tipo].sort(
+        (a, b) => b.count - a.count,
+      );
     },
   },
   methods: {
@@ -118,35 +98,6 @@ export default {
       } finally {
         this.cargando = false;
       }
-    },
-    formatMes(mes: string): string {
-      const parts = mes.split("-");
-      const year = parts[0] || "";
-      const month = parts[1] || "1";
-      const meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-      return meses[parseInt(month) - 1] + " " + year;
-    },
-    xAccessor(d: any) {
-      return d.date;
-    },
-    yAccessor(d: any) {
-      return d.cantidad;
-    },
-    formatMesShort(d: number | Date): string {
-      const date = new Date(d);
-      return date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
-    },
-    crosshairTemplate() {
-      return componentToString(
-        this.chartConfig,
-        ChartTooltipContent,
-        {
-          labelFormatter(d: number | Date) {
-            const date = new Date(d);
-            return date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
-          },
-        }
-      );
     },
   },
   async mounted() {
@@ -177,12 +128,18 @@ export default {
       </Button>
     </div>
 
-    <div v-if="cargando && !estadisticas" class="flex items-center justify-center py-20">
+    <div
+      v-if="cargando && !estadisticas"
+      class="flex items-center justify-center py-20"
+    >
       <Loader2 class="size-8 animate-spin text-muted-foreground" />
       <span class="ml-2 text-muted-foreground">Cargando estadísticas...</span>
     </div>
 
-    <div v-else-if="error" class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center">
+    <div
+      v-else-if="error"
+      class="rounded-lg border border-destructive/50 bg-destructive/10 p-6 text-center"
+    >
       <p class="text-destructive">{{ error }}</p>
       <Button variant="outline" class="mt-4" @click="cargarEstadisticas">
         Reintentar
@@ -194,31 +151,41 @@ export default {
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>Total Trámites</CardDescription>
-            <CardTitle class="text-3xl">{{ estadisticas.total_tramites }}</CardTitle>
+            <CardTitle class="text-3xl">{{
+              estadisticas.total_tramites
+            }}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>Pendientes</CardDescription>
-            <CardTitle class="text-3xl text-yellow-600">{{ estadisticas.pendientes }}</CardTitle>
+            <CardTitle class="text-3xl text-yellow-600">{{
+              estadisticas.pendientes
+            }}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>En Proceso</CardDescription>
-            <CardTitle class="text-3xl text-blue-600">{{ estadisticas.en_proceso }}</CardTitle>
+            <CardTitle class="text-3xl text-blue-600">{{
+              estadisticas.en_proceso
+            }}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>Completados</CardDescription>
-            <CardTitle class="text-3xl text-green-600">{{ estadisticas.completados }}</CardTitle>
+            <CardTitle class="text-3xl text-green-600">{{
+              estadisticas.completados
+            }}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>Rechazados</CardDescription>
-            <CardTitle class="text-3xl text-red-600">{{ estadisticas.rechazados }}</CardTitle>
+            <CardTitle class="text-3xl text-red-600">{{
+              estadisticas.rechazados
+            }}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -227,19 +194,25 @@ export default {
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>Bodegas</CardDescription>
-            <CardTitle class="text-3xl">{{ estadisticas.total_bodegas }}</CardTitle>
+            <CardTitle class="text-3xl">{{
+              estadisticas.total_bodegas
+            }}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>Núcleos</CardDescription>
-            <CardTitle class="text-3xl">{{ estadisticas.total_nucleos }}</CardTitle>
+            <CardTitle class="text-3xl">{{
+              estadisticas.total_nucleos
+            }}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
           <CardHeader class="pb-2">
             <CardDescription>Personas Atendidas</CardDescription>
-            <CardTitle class="text-3xl">{{ estadisticas.total_personas_atendidas }}</CardTitle>
+            <CardTitle class="text-3xl">{{
+              estadisticas.total_personas_atendidas
+            }}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -257,7 +230,10 @@ export default {
                 :key="item.estado"
                 class="flex items-center gap-3"
               >
-                <div class="w-3 h-3 rounded-full" :style="{ backgroundColor: item.color }"></div>
+                <div
+                  class="w-3 h-3 rounded-full"
+                  :style="{ backgroundColor: item.color }"
+                ></div>
                 <span class="flex-1 text-sm">{{ item.estado }}</span>
                 <span class="text-sm font-medium">{{ item.cantidad }}</span>
                 <div class="w-32 h-2 bg-muted rounded-full overflow-hidden">
@@ -265,9 +241,10 @@ export default {
                     class="h-full rounded-full"
                     :style="{
                       backgroundColor: item.color,
-                      width: estadisticas.total_tramites > 0
-                        ? `${(item.cantidad / estadisticas.total_tramites) * 100}%`
-                        : '0%'
+                      width:
+                        estadisticas.total_tramites > 0
+                          ? `${(item.cantidad / estadisticas.total_tramites) * 100}%`
+                          : '0%',
                     }"
                   ></div>
                 </div>
@@ -288,16 +265,19 @@ export default {
                 :key="tipo.nombre"
                 class="flex items-center gap-3"
               >
-                <span class="text-xs text-muted-foreground w-6">{{ index + 1 }}</span>
+                <span class="text-xs text-muted-foreground w-6">{{
+                  index + 1
+                }}</span>
                 <span class="flex-1 text-sm truncate">{{ tipo.nombre }}</span>
                 <span class="text-sm font-medium">{{ tipo.count }}</span>
                 <div class="w-32 h-2 bg-muted rounded-full overflow-hidden">
                   <div
                     class="h-full rounded-full bg-primary"
                     :style="{
-                      width: tiposData.length > 0 && tiposData[0]
-                        ? `${(tipo.count / tiposData[0].count) * 100}%`
-                        : '0%'
+                      width:
+                        tiposData.length > 0 && tiposData[0]
+                          ? `${(tipo.count / tiposData[0].count) * 100}%`
+                          : '0%',
                     }"
                   ></div>
                 </div>
@@ -306,35 +286,6 @@ export default {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Trámites por Mes</CardTitle>
-          <CardDescription>Evolución mensual de trámites (últimos 12 meses)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer v-if="mesesData.length > 0" :config="chartConfig" class="h-64 w-full">
-            <VisXYContainer :data="mesesData" :height="250">
-              <VisLine :x="xAccessor" :y="yAccessor" color="#3b82f6" :lineWidth="2" />
-              <VisArea :x="xAccessor" :y="yAccessor" color="#3b82f6" :opacity="0.1" />
-              <VisAxis
-                type="x"
-                :x="xAccessor"
-                :tickFormat="formatMesShort"
-              />
-              <VisAxis type="y" :y="yAccessor" />
-              <ChartTooltip />
-              <ChartCrosshair
-                :template="crosshairTemplate"
-                color="#3b82f6"
-              />
-            </VisXYContainer>
-          </ChartContainer>
-          <div v-else class="h-64 flex items-center justify-center text-muted-foreground">
-            No hay datos disponibles
-          </div>
-        </CardContent>
-      </Card>
     </template>
   </div>
 </template>
