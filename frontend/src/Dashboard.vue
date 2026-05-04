@@ -101,6 +101,11 @@ export default {
       if (tipo === "Administrador") {
         return [
           {
+            label: "Estadísticas",
+            icon: this.icons.BarChart3,
+            to: "/dashboard/estadisticas",
+          },
+          {
             label: "Usuarios",
             icon: this.icons.Users,
             to: "/dashboard/usuarios",

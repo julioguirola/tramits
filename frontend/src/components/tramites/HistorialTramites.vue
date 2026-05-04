@@ -116,9 +116,6 @@ export default {
       if (data?.total !== undefined) {
         this.total = data.total;
       }
-      if (data?.tramites) {
-        this.tramites = data.tramites;
-      }
     },
     async cambiarLimite(limite: number) {
       if (this.cargando || this.limit === limite) return;
@@ -132,9 +129,6 @@ export default {
       );
       if (data?.total !== undefined) {
         this.total = data.total;
-      }
-      if (data?.tramites) {
-        this.tramites = data.tramites;
       }
     },
     getEstadoVariant(
@@ -187,9 +181,6 @@ export default {
         if (data?.total !== undefined) {
           this.total = data.total;
         }
-        if (data?.tramites) {
-          this.tramites = data.tramites;
-        }
       }
       this.loading_cancelar = null;
     },
@@ -203,9 +194,6 @@ export default {
     );
     if (data?.total !== undefined) {
       this.total = data.total;
-    }
-    if (data?.tramites) {
-      this.tramites = data.tramites;
     }
   },
 };

@@ -1,5 +1,7 @@
 <script lang="ts">
+import { defineAsyncComponent } from "vue";
 import { api } from "@/lib/utils";
+import { exportToPdf } from "@/composables/useExportPdf";
 import {
   Card,
   CardContent,
@@ -8,9 +10,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-vue-next";
-import { VisXYContainer, VisGroupedBar, VisAxis } from "@unovis/vue";
-import { ChartContainer, ChartLegendContent } from "@/components/ui/chart";
+import {
+  Loader2,
+  RefreshCw,
+  Files,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Warehouse,
+  Hexagon,
+  Users,
+  Loader,
+  FileDown,
+} from "lucide-vue-next";
+import type { ChartConfig } from "@/components/ui/chart";
+
+const GraficaPastel = defineAsyncComponent(() => import("./GraficaPastel.vue"));
+const GraficaBarras = defineAsyncComponent(() => import("./GraficaBarras.vue"));
 
 interface Estadisticas {
   total_tramites: number;
@@ -36,23 +52,30 @@ export default {
     Button,
     Loader2,
     RefreshCw,
-    VisXYContainer,
-    VisGroupedBar,
-    VisAxis,
-    ChartContainer,
-    ChartLegendContent,
+    Files,
+    Clock,
+    Loader,
+    CheckCircle,
+    XCircle,
+    Warehouse,
+    Hexagon,
+    Users,
+    GraficaPastel,
+    GraficaBarras,
+    FileDown,
   },
   data() {
     return {
       estadisticas: null as Estadisticas | null,
       cargando: false,
+      exportando: false,
       error: null as string | null,
       chartConfig: {
         tramites: {
           label: "Trámites",
           color: "var(--chart-1)",
         },
-      },
+      } satisfies ChartConfig,
     };
   },
   computed: {
@@ -92,6 +115,13 @@ export default {
         (a, b) => b.count - a.count,
       );
     },
+    chartData() {
+      if (!this.estadisticas) return [];
+      return this.estadisticas.tramites_por_mes.map((item, index) => ({
+        ...item,
+        index,
+      }));
+    },
   },
   methods: {
     async cargarEstadisticas() {
@@ -112,12 +142,15 @@ export default {
         this.cargando = false;
       }
     },
-    chartData() {
-      if (!this.estadisticas) return [];
-      return this.estadisticas.tramites_por_mes.map((item, index) => ({
-        ...item,
-        index,
-      }));
+    async exportarPdf() {
+      this.exportando = true;
+      try {
+        await exportToPdf("estadisticas-export", "estadisticas");
+      } catch (err) {
+        console.error("Error al exportar PDF:", err);
+      } finally {
+        this.exportando = false;
+      }
     },
   },
   async mounted() {
@@ -146,6 +179,17 @@ export default {
         <Loader2 v-else class="size-4 animate-spin" />
         Actualizar
       </Button>
+      <Button
+        variant="default"
+        size="sm"
+        class="gap-2"
+        @click="exportarPdf"
+        :disabled="exportando || cargando"
+      >
+        <FileDown v-if="!exportando" class="size-4" />
+        <Loader2 v-else class="size-4 animate-spin" />
+        Exportar PDF
+      </Button>
     </div>
 
     <div
@@ -167,183 +211,176 @@ export default {
     </div>
 
     <template v-else-if="estadisticas">
-      <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Total Trámites</CardDescription>
-            <CardTitle class="text-3xl">{{
-              estadisticas.total_tramites
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Pendientes</CardDescription>
-            <CardTitle class="text-3xl text-yellow-600">{{
-              estadisticas.pendientes
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>En Proceso</CardDescription>
-            <CardTitle class="text-3xl text-blue-600">{{
-              estadisticas.en_proceso
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Completados</CardDescription>
-            <CardTitle class="text-3xl text-green-600">{{
-              estadisticas.completados
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Rechazados</CardDescription>
-            <CardTitle class="text-3xl text-red-600">{{
-              estadisticas.rechazados
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+      <div id="estadisticas-export" class="space-y-6">
+        <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <Card class="border-l-4 border-l-primary">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>Total Trámites</CardDescription>
+              <Files class="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl">{{
+                estadisticas.total_tramites
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+          <Card class="border-l-4 border-l-yellow-500">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>Pendientes</CardDescription>
+              <Clock class="h-4 w-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl text-yellow-600">{{
+                estadisticas.pendientes
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+          <Card class="border-l-4 border-l-blue-500">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>En Proceso</CardDescription>
+              <Loader class="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl text-blue-600">{{
+                estadisticas.en_proceso
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+          <Card class="border-l-4 border-l-green-500">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>Completados</CardDescription>
+              <CheckCircle class="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl text-green-600">{{
+                estadisticas.completados
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+          <Card class="border-l-4 border-l-red-500">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>Rechazados</CardDescription>
+              <XCircle class="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl text-red-600">{{
+                estadisticas.rechazados
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div class="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Bodegas</CardDescription>
-            <CardTitle class="text-3xl">{{
-              estadisticas.total_bodegas
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Núcleos</CardDescription>
-            <CardTitle class="text-3xl">{{
-              estadisticas.total_nucleos
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader class="pb-2">
-            <CardDescription>Personas Atendidas</CardDescription>
-            <CardTitle class="text-3xl">{{
-              estadisticas.total_personas_atendidas
-            }}</CardTitle>
-          </CardHeader>
-        </Card>
-      </div>
+        <div class="grid gap-4 md:grid-cols-3">
+          <Card class="border-l-4 border-l-purple-500">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>Bodegas</CardDescription>
+              <Warehouse class="h-4 w-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl">{{
+                estadisticas.total_bodegas
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+          <Card class="border-l-4 border-l-cyan-500">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>Núcleos</CardDescription>
+              <Hexagon class="h-4 w-4 text-cyan-500" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl">{{
+                estadisticas.total_nucleos
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+          <Card class="border-l-4 border-l-orange-500">
+            <CardHeader
+              class="pb-2 flex flex-row items-center justify-between space-y-0"
+            >
+              <CardDescription>Personas Atendidas</CardDescription>
+              <Users class="h-4 w-4 text-orange-500" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle class="text-3xl">{{
+                estadisticas.total_personas_atendidas
+              }}</CardTitle>
+            </CardContent>
+          </Card>
+        </div>
 
-      <div class="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Trámites por Estado</CardTitle>
-            <CardDescription>Distribución actual de trámites</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-3">
-              <div
-                v-for="item in estadoData"
-                :key="item.estado"
-                class="flex items-center gap-3"
-              >
+        <div class="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Trámites por Estado</CardTitle>
+              <CardDescription>Distribución actual de trámites</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div class="space-y-3">
                 <div
-                  class="w-3 h-3 rounded-full"
-                  :style="{ backgroundColor: item.color }"
-                ></div>
-                <span class="flex-1 text-sm">{{ item.estado }}</span>
-                <span class="text-sm font-medium">{{ item.cantidad }}</span>
-                <div class="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                  v-for="item in estadoData"
+                  :key="item.estado"
+                  class="flex items-center gap-3"
+                >
                   <div
-                    class="h-full rounded-full"
-                    :style="{
-                      backgroundColor: item.color,
-                      width:
-                        estadisticas.total_tramites > 0
-                          ? `${(item.cantidad / estadisticas.total_tramites) * 100}%`
-                          : '0%',
-                    }"
+                    class="w-3 h-3 rounded-full"
+                    :style="{ backgroundColor: item.color }"
                   ></div>
+                  <span class="flex-1 text-sm">{{ item.estado }}</span>
+                  <span class="text-sm font-medium">{{ item.cantidad }}</span>
+                  <div class="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      class="h-full rounded-full"
+                      :style="{
+                        backgroundColor: item.color,
+                        width:
+                          estadisticas.total_tramites > 0
+                            ? `${(item.cantidad / estadisticas.total_tramites) * 100}%`
+                            : '0%',
+                      }"
+                    ></div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Tipos de Trámite</CardTitle>
-            <CardDescription>Los 10 tipos más solicitados</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-3">
-              <div
-                v-for="(tipo, index) in tiposData.slice(0, 10)"
-                :key="tipo.nombre"
-                class="flex items-center gap-3"
-              >
-                <span class="text-xs text-muted-foreground w-6">{{
-                  index + 1
-                }}</span>
-                <span class="flex-1 text-sm truncate">{{ tipo.nombre }}</span>
-                <span class="text-sm font-medium">{{ tipo.count }}</span>
-                <div class="w-32 h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    class="h-full rounded-full bg-primary"
-                    :style="{
-                      width:
-                        tiposData.length > 0 && tiposData[0]
-                          ? `${(tipo.count / tiposData[0].count) * 100}%`
-                          : '0%',
-                    }"
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          <Suspense>
+            <GraficaPastel
+              :tipos-data="tiposData"
+              :chart-config="chartConfig"
+            />
+            <template #fallback>
+              <Card class="flex items-center justify-center h-72">
+                <Loader2 class="size-6 animate-spin text-muted-foreground" />
+              </Card>
+            </template>
+          </Suspense>
+        </div>
+
+        <Suspense>
+          <GraficaBarras :chart-data="chartData" :chart-config="chartConfig" />
+          <template #fallback>
+            <Card class="flex items-center justify-center h-96">
+              <Loader2 class="size-6 animate-spin text-muted-foreground" />
+            </Card>
+          </template>
+        </Suspense>
       </div>
-
-      <Card class="mt-6">
-        <CardHeader>
-          <CardTitle>Trámites por Mes</CardTitle>
-          <CardDescription>Distribución mensual de trámites</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer :config="chartConfig" class="h-120 w-full">
-            <VisXYContainer :data="chartData()">
-              <VisGroupedBar
-                :x="(d) => d.index"
-                :y="(d) => d.count"
-                :color="chartConfig.tramites.color"
-                :rounded-corners="4"
-                :bar-padding="0.1"
-              />
-              <VisAxis
-                 type="x"
-                 :x="(d) => d.index"
-                 :tick-format="(d) => chartData()[d]?.mes || ''"
-                 :num-ticks="chartData().length"
-                 :tick-line="false"
-                 :domain-line="false"
-                 :grid-line="false"
-               />
-               <VisAxis
-                 type="y"
-                 :tick-format="(d) => Math.round(d)"
-                 :num-ticks="Math.min(10, Math.max(...chartData().map(d => d.count)) + 1)"
-                 :tick-line="false"
-                 :domain-line="false"
-                 :grid-line="true"
-               />
-            </VisXYContainer>
-            <ChartLegendContent />
-          </ChartContainer>
-        </CardContent>
-      </Card>
     </template>
   </div>
 </template>
+

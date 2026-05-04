@@ -118,45 +118,56 @@ async fn get_estadisticas_oficina(
     })
 }
 
-async fn count_tramites(db: &Pool<Postgres>, usr: &UsuarioJwt, estado_filter: Option<&str>) -> Result<i64, sqlx::Error> {
-    let mut query = String::from("select count(*) from tramite t join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id where 1=1");
+async fn count_tramites(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+    estado_filter: Option<&str>,
+) -> Result<i64, sqlx::Error> {
+    let mut query = String::from(
+        "select count(*) from tramite t join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id where 1=1",
+    );
     let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
 
     if usr.rol == "Registrador" {
-        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
-            .bind(usr.sub)
-            .fetch_one(db)
-            .await?;
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
 
         if let Some(oficina) = oficina_id {
-            query.push_str(" and b.oficina_id = $1");
+            query.push_str(&format!(" and b.oficina_id = ${}", param_count));
             let _ = args.add(oficina);
+            param_count += 1;
         }
     }
 
     if let Some(filter) = estado_filter {
-        if usr.rol == "Registrador" {
-            query.push_str(&format!(" and {}", filter.replace("$1", "$2")));
-        } else {
-            query.push_str(&format!(" and {}", filter));
-        }
+        query.push_str(&format!(
+            " and {}",
+            filter.replace("$1", &format!("${}", param_count))
+        ));
     }
 
     query.push_str(";");
-    let count: (i64,) = sqlx::query_as_with::<_, (i64,), _>(&query, args).fetch_one(db).await?;
+    let count: (i64,) = sqlx::query_as_with::<_, (i64,), _>(&query, args)
+        .fetch_one(db)
+        .await?;
     Ok(count.0)
 }
 
 async fn count_bodegas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sqlx::Error> {
     if usr.rol == "Registrador" {
-        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
-            .bind(usr.sub)
-            .fetch_one(db)
-            .await?;
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
 
         if let Some(oficina) = oficina_id {
             let count: (i64,) = sqlx::query_as(
-                "select count(distinct b.id) from bodega b where b.oficina_id = $1;"
+                "select count(distinct b.id) from bodega b where b.oficina_id = $1;",
             )
             .bind(oficina)
             .fetch_one(db)
@@ -172,10 +183,11 @@ async fn count_bodegas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sql
 
 async fn count_nucleos(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sqlx::Error> {
     if usr.rol == "Registrador" {
-        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
-            .bind(usr.sub)
-            .fetch_one(db)
-            .await?;
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
 
         if let Some(oficina) = oficina_id {
             let count: (i64,) = sqlx::query_as(
@@ -195,10 +207,11 @@ async fn count_nucleos(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sql
 
 async fn count_personas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sqlx::Error> {
     if usr.rol == "Registrador" {
-        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
-            .bind(usr.sub)
-            .fetch_one(db)
-            .await?;
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
 
         if let Some(oficina) = oficina_id {
             let count: (i64,) = sqlx::query_as(
@@ -216,12 +229,16 @@ async fn count_personas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sq
     Ok(count.0)
 }
 
-async fn get_tramites_por_tipo(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<Vec<TramiteTipoCount>, sqlx::Error> {
+async fn get_tramites_por_tipo(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+) -> Result<Vec<TramiteTipoCount>, sqlx::Error> {
     if usr.rol == "Registrador" {
-        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
-            .bind(usr.sub)
-            .fetch_one(db)
-            .await?;
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
 
         if let Some(oficina) = oficina_id {
             return Ok(sqlx::query_as(
@@ -231,7 +248,7 @@ async fn get_tramites_por_tipo(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<
                  join nucleo n on n.id = t.nucleo_id
                  join bodega b on b.id = n.bodega_id
                  where b.oficina_id = $1
-                 group by tt.nombre order by count desc limit 10;"
+                 group by tt.nombre order by count desc limit 10;",
             )
             .bind(oficina)
             .fetch_all(db)
@@ -242,18 +259,22 @@ async fn get_tramites_por_tipo(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<
         "select tt.nombre, count(t.id) as count
          from tramite t
          join tramite_tipo tt on tt.id = t.tipo_id
-         group by tt.nombre order by count desc limit 10;"
+         group by tt.nombre order by count desc limit 10;",
     )
     .fetch_all(db)
     .await?)
 }
 
-async fn get_tramites_por_mes(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<Vec<TramiteMesCount>, sqlx::Error> {
+async fn get_tramites_por_mes(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+) -> Result<Vec<TramiteMesCount>, sqlx::Error> {
     if usr.rol == "Registrador" {
-        let oficina_id: Option<i32> = sqlx::query_scalar("select oficina_id from usuario where id = $1;")
-            .bind(usr.sub)
-            .fetch_one(db)
-            .await?;
+        let oficina_id: Option<i32> =
+            sqlx::query_scalar("select oficina_id from usuario where id = $1;")
+                .bind(usr.sub)
+                .fetch_one(db)
+                .await?;
 
         if let Some(oficina) = oficina_id {
             return Ok(sqlx::query_as(
@@ -262,7 +283,7 @@ async fn get_tramites_por_mes(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<V
                  join nucleo n on n.id = t.nucleo_id
                  join bodega b on b.id = n.bodega_id
                  where b.oficina_id = $1
-                 group by to_char(t.fecha_solicitud, 'YYYY-MM') order by mes desc limit 12;"
+                 group by to_char(t.fecha_solicitud, 'YYYY-MM') order by mes asc limit 13;",
             )
             .bind(oficina)
             .fetch_all(db)
@@ -272,8 +293,9 @@ async fn get_tramites_por_mes(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<V
     Ok(sqlx::query_as(
         "select to_char(t.fecha_solicitud, 'YYYY-MM') as mes, count(t.id) as count
          from tramite t
-         group by to_char(t.fecha_solicitud, 'YYYY-MM') order by mes desc limit 12;"
+         group by to_char(t.fecha_solicitud, 'YYYY-MM') order by mes asc limit 13;",
     )
     .fetch_all(db)
     .await?)
 }
+

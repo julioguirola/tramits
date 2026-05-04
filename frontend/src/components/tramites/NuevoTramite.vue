@@ -146,6 +146,7 @@ export default {
             <div class="flex items-center gap-3">
               <p class="text-muted-foreground">Núcleo: {{ tramite.nucleo }}</p>
               <Button
+                v-if="tramite.estado === 'Pendiente'"
                 size="sm"
                 variant="destructive"
                 class="gap-2"
