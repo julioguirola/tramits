@@ -2,6 +2,11 @@
 
 ## Project Overview
 
+## Preferencias del agente
+
+- Solo hacer cambios.
+- No conversar ni explicar nada, salvo cuando este en modo plan.
+
 **Tramits** es una plataforma web para la gestión de trámites de núcleos familiares en Cuba. Permite a los ciudadanos (consumidores) solicitar alta o baja de núcleos de forma online, eliminando la necesidad de presentarse presencialmente en las oficinas.
 
 **Organización destino**: Ministerio de Comercio Interior de Cuba (MINCIN)

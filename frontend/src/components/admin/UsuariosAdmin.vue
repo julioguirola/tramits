@@ -35,7 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Users } from "lucide-vue-next";
+import { Download, Loader2, Users } from "lucide-vue-next";
+import * as XLSX from "xlsx";
 import { filtrosStore } from "@/stores/filtros.store";
 import { mapState } from "pinia";
 import ProvinciaFiltro from "@/components/filtros/ProvinciaFiltro.vue";
@@ -94,6 +95,7 @@ export default {
     ProvinciaFiltro,
     MunicipioFiltro,
     OficinaFiltro,
+    Download,
   },
   data() {
     return {
@@ -103,6 +105,7 @@ export default {
       limit: 10,
       total: 0,
       limitOptions: [5, 10, 20, 30],
+      filtrosKey: 0,
     };
   },
   computed: {
@@ -115,6 +118,12 @@ export default {
       const start = (this.page - 1) * this.limit + 1;
       const end = Math.min(this.page * this.limit, this.total);
       return `${start}-${end}`;
+    },
+    hayFiltrosActivos(): boolean {
+      return Boolean(this.provincia_id || this.municipio_id || this.oficina_id);
+    },
+    tieneUsuarios(): boolean {
+      return this.usuarios.length > 0;
     },
   },
   methods: {
@@ -153,6 +162,37 @@ export default {
       this.page = 1;
       await this.cargarUsuarios();
     },
+    async limpiarFiltros() {
+      const filtros = filtrosStore();
+      filtros.$patch({
+        provincia_id: null,
+        municipio_id: null,
+        oficina_id: null,
+        municipios: [],
+        oficinas: [],
+      });
+      this.filtrosKey += 1;
+      this.page = 1;
+      await this.cargarUsuarios();
+    },
+    exportarUsuariosExcel() {
+      if (this.usuarios.length === 0) return;
+      const data = this.usuarios.map((usuario) => ({
+        Nombre: `${usuario.nombre} ${usuario.apellido}`,
+        Email: usuario.email,
+        Rol: usuario.rol,
+        Oficina: usuario.oficina ?? "-",
+        Municipio: usuario.municipio,
+        Provincia: usuario.provincia,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Usuarios");
+      XLSX.writeFile(
+        wb,
+        `usuarios_${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
+    },
   },
   watch: {
     provincia_id() {
@@ -177,17 +217,32 @@ export default {
 <template>
   <Card>
     <CardHeader>
-      <CardTitle class="flex items-center gap-2">
-        <Users class="size-5" />
-        Usuarios del sistema
+      <CardTitle class="flex flex-wrap items-center justify-between gap-3">
+        <span class="flex items-center gap-2">
+          <Users class="size-5" />
+          Usuarios del sistema
+        </span>
+        <Button
+          v-if="tieneUsuarios"
+          size="sm"
+          variant="outline"
+          class="gap-2"
+          @click="exportarUsuariosExcel"
+        >
+          <Download class="size-4" />
+          Exportar
+        </Button>
       </CardTitle>
       <CardDescription>
         {{ total }} usuarios registrados · Mostrando {{ mostrando }}
       </CardDescription>
-      <div class="flex flex-wrap gap-3 pt-2">
+      <div class="flex flex-wrap gap-3 pt-2" :key="filtrosKey">
         <ProvinciaFiltro />
         <MunicipioFiltro />
         <OficinaFiltro />
+        <Button v-if="hayFiltrosActivos" variant="outline" @click="limpiarFiltros">
+          Limpiar filtros
+        </Button>
       </div>
     </CardHeader>
     <CardContent>

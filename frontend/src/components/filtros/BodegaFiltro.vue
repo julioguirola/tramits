@@ -32,10 +32,10 @@ export default {
     },
   },
   computed: {
-    ...mapState(filtrosStore, ["oficina_id", "bodegas"]),
+    ...mapState(filtrosStore, ["oficina_id", "bodegas", "bodega_id"]),
   },
   data: () => ({
-    bodegaId: null,
+    bodegaId: filtrosStore().bodega_id,
   }),
 };
 </script>

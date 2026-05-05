@@ -32,10 +32,15 @@ export default {
     },
   },
   computed: {
-    ...mapState(filtrosStore, ["provincia_id", "municipios", "provincia_id"]),
+    ...mapState(filtrosStore, [
+      "provincia_id",
+      "municipios",
+      "provincia_id",
+      "municipio_id",
+    ]),
   },
   data: () => ({
-    municipioId: null,
+    municipioId: filtrosStore().municipio_id,
   }),
 };
 </script>

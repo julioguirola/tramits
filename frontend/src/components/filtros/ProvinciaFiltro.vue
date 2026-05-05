@@ -35,7 +35,7 @@ export default {
     ...mapState(filtrosStore, ["provincias", "provincia_id"]),
   },
   data: () => ({
-    provinciaId: null,
+    provinciaId: filtrosStore().provincia_id,
   }),
 };
 </script>
