@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     Extension,
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     response::{IntoResponse, Json as Js, Response},
 };
@@ -16,6 +16,13 @@ use crate::{
     repos::usuario::UsuarioJwt,
     tipos::{Respuesta, Ress},
 };
+
+#[derive(serde::Deserialize)]
+pub struct EstadisticasQuery {
+    pub provincia_id: Option<i32>,
+    pub municipio_id: Option<i32>,
+    pub oficina_id: Option<i32>,
+}
 
 #[derive(Serialize, FromRow)]
 pub struct TramiteTipoCount {
@@ -47,6 +54,7 @@ pub struct EstadisticasOficina {
 pub async fn get_estadisticas_h(
     State(state): State<Arc<AppState>>,
     Extension(usr): Extension<UsuarioJwt>,
+    Query(params): Query<EstadisticasQuery>,
 ) -> Response {
     if usr.rol != "Registrador" && usr.rol != "Administrador" {
         return (
@@ -60,7 +68,12 @@ pub async fn get_estadisticas_h(
             .into_response();
     }
 
-    let result = get_estadisticas_oficina(&state.db, &usr).await;
+    let filtros = if usr.rol == "Administrador" {
+        Some(&params)
+    } else {
+        None
+    };
+    let result = get_estadisticas_oficina(&state.db, &usr, filtros).await;
 
     match result {
         Ok(stats) => (
@@ -90,18 +103,19 @@ pub async fn get_estadisticas_h(
 async fn get_estadisticas_oficina(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
+    filtros: Option<&EstadisticasQuery>,
 ) -> Result<EstadisticasOficina, sqlx::Error> {
-    let total = count_tramites(db, usr, None).await?;
-    let pendientes = count_tramites(db, usr, Some("t.estado_id = 1")).await?;
-    let en_proceso = count_tramites(db, usr, Some("t.estado_id = 2")).await?;
-    let completados = count_tramites(db, usr, Some("t.estado_id = 3")).await?;
-    let rechazados = count_tramites(db, usr, Some("t.estado_id = 4")).await?;
-    let cancelados = count_tramites(db, usr, Some("t.estado_id = 5")).await?;
-    let total_bodegas = count_bodegas(db, usr).await?;
-    let total_nucleos = count_nucleos(db, usr).await?;
-    let total_personas = count_personas(db, usr).await?;
-    let tramites_por_tipo = get_tramites_por_tipo(db, usr).await?;
-    let tramites_por_mes = get_tramites_por_mes(db, usr).await?;
+    let total = count_tramites(db, usr, filtros, None).await?;
+    let pendientes = count_tramites(db, usr, filtros, Some("t.estado_id = 1")).await?;
+    let en_proceso = count_tramites(db, usr, filtros, Some("t.estado_id = 2")).await?;
+    let completados = count_tramites(db, usr, filtros, Some("t.estado_id = 3")).await?;
+    let rechazados = count_tramites(db, usr, filtros, Some("t.estado_id = 4")).await?;
+    let cancelados = count_tramites(db, usr, filtros, Some("t.estado_id = 5")).await?;
+    let total_bodegas = count_bodegas(db, usr, filtros).await?;
+    let total_nucleos = count_nucleos(db, usr, filtros).await?;
+    let total_personas = count_personas(db, usr, filtros).await?;
+    let tramites_por_tipo = get_tramites_por_tipo(db, usr, filtros).await?;
+    let tramites_por_mes = get_tramites_por_mes(db, usr, filtros).await?;
 
     Ok(EstadisticasOficina {
         total_tramites: total,
@@ -121,10 +135,11 @@ async fn get_estadisticas_oficina(
 async fn count_tramites(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
+    filtros: Option<&EstadisticasQuery>,
     estado_filter: Option<&str>,
 ) -> Result<i64, sqlx::Error> {
     let mut query = String::from(
-        "select count(*) from tramite t join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id where 1=1",
+        "select count(*) from tramite t join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id join oficina o on o.id = b.oficina_id join municipio m on m.id = o.municipio_id join provincia pr on pr.id = m.provincia_id where 1=1",
     );
     let mut args = sqlx::postgres::PgArguments::default();
     let mut param_count = 1;
@@ -137,10 +152,12 @@ async fn count_tramites(
                 .await?;
 
         if let Some(oficina) = oficina_id {
-            query.push_str(&format!(" and b.oficina_id = ${}", param_count));
+            query.push_str(&format!(" and o.id = ${}", param_count));
             let _ = args.add(oficina);
             param_count += 1;
         }
+    } else if let Some(filtros) = filtros {
+        apply_filtros(&mut query, &mut args, &mut param_count, filtros);
     }
 
     if let Some(filter) = estado_filter {
@@ -157,7 +174,17 @@ async fn count_tramites(
     Ok(count.0)
 }
 
-async fn count_bodegas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sqlx::Error> {
+async fn count_bodegas(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+    filtros: Option<&EstadisticasQuery>,
+) -> Result<i64, sqlx::Error> {
+    let mut query = String::from(
+        "select count(distinct b.id) from bodega b join oficina o on o.id = b.oficina_id join municipio m on m.id = o.municipio_id join provincia pr on pr.id = m.provincia_id where 1=1",
+    );
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
+
     if usr.rol == "Registrador" {
         let oficina_id: Option<i32> =
             sqlx::query_scalar("select oficina_id from usuario where id = $1;")
@@ -166,22 +193,31 @@ async fn count_bodegas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sql
                 .await?;
 
         if let Some(oficina) = oficina_id {
-            let count: (i64,) = sqlx::query_as(
-                "select count(distinct b.id) from bodega b where b.oficina_id = $1;",
-            )
-            .bind(oficina)
-            .fetch_one(db)
-            .await?;
-            return Ok(count.0);
+            query.push_str(&format!(" and o.id = ${}", param_count));
+            let _ = args.add(oficina);
         }
+    } else if let Some(filtros) = filtros {
+        apply_filtros(&mut query, &mut args, &mut param_count, filtros);
     }
-    let count: (i64,) = sqlx::query_as("select count(distinct b.id) from bodega b;")
+
+    query.push_str(";");
+    let count: (i64,) = sqlx::query_as_with::<_, (i64,), _>(&query, args)
         .fetch_one(db)
         .await?;
     Ok(count.0)
 }
 
-async fn count_nucleos(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sqlx::Error> {
+async fn count_nucleos(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+    filtros: Option<&EstadisticasQuery>,
+) -> Result<i64, sqlx::Error> {
+    let mut query = String::from(
+        "select count(distinct n.id) from nucleo n join bodega b on b.id = n.bodega_id join oficina o on o.id = b.oficina_id join municipio m on m.id = o.municipio_id join provincia pr on pr.id = m.provincia_id where 1=1",
+    );
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
+
     if usr.rol == "Registrador" {
         let oficina_id: Option<i32> =
             sqlx::query_scalar("select oficina_id from usuario where id = $1;")
@@ -190,22 +226,31 @@ async fn count_nucleos(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sql
                 .await?;
 
         if let Some(oficina) = oficina_id {
-            let count: (i64,) = sqlx::query_as(
-                "select count(distinct n.id) from nucleo n join bodega b on b.id = n.bodega_id where b.oficina_id = $1;"
-            )
-            .bind(oficina)
-            .fetch_one(db)
-            .await?;
-            return Ok(count.0);
+            query.push_str(&format!(" and o.id = ${}", param_count));
+            let _ = args.add(oficina);
         }
+    } else if let Some(filtros) = filtros {
+        apply_filtros(&mut query, &mut args, &mut param_count, filtros);
     }
-    let count: (i64,) = sqlx::query_as("select count(distinct n.id) from nucleo n;")
+
+    query.push_str(";");
+    let count: (i64,) = sqlx::query_as_with::<_, (i64,), _>(&query, args)
         .fetch_one(db)
         .await?;
     Ok(count.0)
 }
 
-async fn count_personas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sqlx::Error> {
+async fn count_personas(
+    db: &Pool<Postgres>,
+    usr: &UsuarioJwt,
+    filtros: Option<&EstadisticasQuery>,
+) -> Result<i64, sqlx::Error> {
+    let mut query = String::from(
+        "select count(distinct t.persona_id) from tramite t join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id join oficina o on o.id = b.oficina_id join municipio m on m.id = o.municipio_id join provincia pr on pr.id = m.provincia_id where 1=1",
+    );
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
+
     if usr.rol == "Registrador" {
         let oficina_id: Option<i32> =
             sqlx::query_scalar("select oficina_id from usuario where id = $1;")
@@ -214,16 +259,15 @@ async fn count_personas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sq
                 .await?;
 
         if let Some(oficina) = oficina_id {
-            let count: (i64,) = sqlx::query_as(
-                "select count(distinct t.persona_id) from tramite t join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id where b.oficina_id = $1;"
-            )
-            .bind(oficina)
-            .fetch_one(db)
-            .await?;
-            return Ok(count.0);
+            query.push_str(&format!(" and o.id = ${}", param_count));
+            let _ = args.add(oficina);
         }
+    } else if let Some(filtros) = filtros {
+        apply_filtros(&mut query, &mut args, &mut param_count, filtros);
     }
-    let count: (i64,) = sqlx::query_as("select count(distinct t.persona_id) from tramite t;")
+
+    query.push_str(";");
+    let count: (i64,) = sqlx::query_as_with::<_, (i64,), _>(&query, args)
         .fetch_one(db)
         .await?;
     Ok(count.0)
@@ -232,7 +276,14 @@ async fn count_personas(db: &Pool<Postgres>, usr: &UsuarioJwt) -> Result<i64, sq
 async fn get_tramites_por_tipo(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
+    filtros: Option<&EstadisticasQuery>,
 ) -> Result<Vec<TramiteTipoCount>, sqlx::Error> {
+    let mut query = String::from(
+        "select tt.nombre, count(t.id) as count from tramite t join tramite_tipo tt on tt.id = t.tipo_id join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id join oficina o on o.id = b.oficina_id join municipio m on m.id = o.municipio_id join provincia pr on pr.id = m.provincia_id where 1=1",
+    );
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
+
     if usr.rol == "Registrador" {
         let oficina_id: Option<i32> =
             sqlx::query_scalar("select oficina_id from usuario where id = $1;")
@@ -241,34 +292,30 @@ async fn get_tramites_por_tipo(
                 .await?;
 
         if let Some(oficina) = oficina_id {
-            return Ok(sqlx::query_as(
-                "select tt.nombre, count(t.id) as count
-                 from tramite t
-                 join tramite_tipo tt on tt.id = t.tipo_id
-                 join nucleo n on n.id = t.nucleo_id
-                 join bodega b on b.id = n.bodega_id
-                 where b.oficina_id = $1
-                 group by tt.nombre order by count desc limit 10;",
-            )
-            .bind(oficina)
-            .fetch_all(db)
-            .await?);
+            query.push_str(&format!(" and o.id = ${}", param_count));
+            let _ = args.add(oficina);
         }
+    } else if let Some(filtros) = filtros {
+        apply_filtros(&mut query, &mut args, &mut param_count, filtros);
     }
-    Ok(sqlx::query_as(
-        "select tt.nombre, count(t.id) as count
-         from tramite t
-         join tramite_tipo tt on tt.id = t.tipo_id
-         group by tt.nombre order by count desc limit 10;",
-    )
-    .fetch_all(db)
-    .await?)
+
+    query.push_str(" group by tt.nombre order by count desc limit 10;");
+    Ok(sqlx::query_as_with::<_, TramiteTipoCount, _>(&query, args)
+        .fetch_all(db)
+        .await?)
 }
 
 async fn get_tramites_por_mes(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
+    filtros: Option<&EstadisticasQuery>,
 ) -> Result<Vec<TramiteMesCount>, sqlx::Error> {
+    let mut query = String::from(
+        "select to_char(t.fecha_solicitud, 'YYYY-MM') as mes, count(t.id) as count from tramite t join nucleo n on n.id = t.nucleo_id join bodega b on b.id = n.bodega_id join oficina o on o.id = b.oficina_id join municipio m on m.id = o.municipio_id join provincia pr on pr.id = m.provincia_id where 1=1",
+    );
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
+
     if usr.rol == "Registrador" {
         let oficina_id: Option<i32> =
             sqlx::query_scalar("select oficina_id from usuario where id = $1;")
@@ -277,25 +324,38 @@ async fn get_tramites_por_mes(
                 .await?;
 
         if let Some(oficina) = oficina_id {
-            return Ok(sqlx::query_as(
-                "select to_char(t.fecha_solicitud, 'YYYY-MM') as mes, count(t.id) as count
-                 from tramite t
-                 join nucleo n on n.id = t.nucleo_id
-                 join bodega b on b.id = n.bodega_id
-                 where b.oficina_id = $1
-                 group by to_char(t.fecha_solicitud, 'YYYY-MM') order by mes asc limit 13;",
-            )
-            .bind(oficina)
-            .fetch_all(db)
-            .await?);
+            query.push_str(&format!(" and o.id = ${}", param_count));
+            let _ = args.add(oficina);
         }
+    } else if let Some(filtros) = filtros {
+        apply_filtros(&mut query, &mut args, &mut param_count, filtros);
     }
-    Ok(sqlx::query_as(
-        "select to_char(t.fecha_solicitud, 'YYYY-MM') as mes, count(t.id) as count
-         from tramite t
-         group by to_char(t.fecha_solicitud, 'YYYY-MM') order by mes asc limit 13;",
-    )
-    .fetch_all(db)
-    .await?)
+
+    query.push_str(" group by to_char(t.fecha_solicitud, 'YYYY-MM') order by mes asc limit 13;");
+    Ok(sqlx::query_as_with::<_, TramiteMesCount, _>(&query, args)
+        .fetch_all(db)
+        .await?)
 }
 
+fn apply_filtros(
+    query: &mut String,
+    args: &mut sqlx::postgres::PgArguments,
+    param_count: &mut i32,
+    filtros: &EstadisticasQuery,
+) {
+    if let Some(oficina) = filtros.oficina_id {
+        query.push_str(&format!(" and o.id = ${}", *param_count));
+        let _ = args.add(oficina);
+        *param_count += 1;
+    }
+    if let Some(municipio) = filtros.municipio_id {
+        query.push_str(&format!(" and m.id = ${}", *param_count));
+        let _ = args.add(municipio);
+        *param_count += 1;
+    }
+    if let Some(provincia) = filtros.provincia_id {
+        query.push_str(&format!(" and pr.id = ${}", *param_count));
+        let _ = args.add(provincia);
+        *param_count += 1;
+    }
+}

@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
-  RefreshCw,
   Files,
   Clock,
   CheckCircle,
@@ -24,6 +23,12 @@ import {
   FileDown,
 } from "lucide-vue-next";
 import type { ChartConfig } from "@/components/ui/chart";
+import { filtrosStore } from "@/stores/filtros.store";
+import { useUsuarioStore } from "@/stores/usuario.store";
+import { mapState } from "pinia";
+import ProvinciaFiltro from "@/components/filtros/ProvinciaFiltro.vue";
+import MunicipioFiltro from "@/components/filtros/MunicipioFiltro.vue";
+import OficinaFiltro from "@/components/filtros/OficinaFiltro.vue";
 
 const GraficaPastel = defineAsyncComponent(() => import("./GraficaPastel.vue"));
 const GraficaBarras = defineAsyncComponent(() => import("./GraficaBarras.vue"));
@@ -51,7 +56,6 @@ export default {
     CardHeader,
     Button,
     Loader2,
-    RefreshCw,
     Files,
     Clock,
     Loader,
@@ -63,6 +67,9 @@ export default {
     GraficaPastel,
     GraficaBarras,
     FileDown,
+    ProvinciaFiltro,
+    MunicipioFiltro,
+    OficinaFiltro,
   },
   data() {
     return {
@@ -70,6 +77,7 @@ export default {
       cargando: false,
       exportando: false,
       error: null as string | null,
+      filtrosKey: 0,
       chartConfig: {
         tramites: {
           label: "Trámites",
@@ -79,6 +87,14 @@ export default {
     };
   },
   computed: {
+    ...mapState(filtrosStore, ["provincia_id", "municipio_id", "oficina_id"]),
+    ...mapState(useUsuarioStore, ["usuario"]),
+    esAdmin(): boolean {
+      return this.usuario?.rol === "Administrador";
+    },
+    hayFiltrosActivos(): boolean {
+      return Boolean(this.provincia_id || this.municipio_id || this.oficina_id);
+    },
     estadoData() {
       if (!this.estadisticas) return [];
       return [
@@ -128,7 +144,13 @@ export default {
       this.cargando = true;
       this.error = null;
       try {
-        const res = await api.get("/tramite/estadisticas");
+        const res = await api.get("/tramite/estadisticas", {
+          params: {
+            provincia_id: this.esAdmin ? this.provincia_id ?? undefined : undefined,
+            municipio_id: this.esAdmin ? this.municipio_id ?? undefined : undefined,
+            oficina_id: this.esAdmin ? this.oficina_id ?? undefined : undefined,
+          },
+        });
         if (res?.status === 200 && res.data?.data) {
           this.estadisticas = res.data.data;
         } else {
@@ -152,6 +174,37 @@ export default {
         this.exportando = false;
       }
     },
+    async limpiarFiltros() {
+      const filtros = filtrosStore();
+      filtros.$patch({
+        provincia_id: null,
+        municipio_id: null,
+        oficina_id: null,
+        municipios: [],
+        oficinas: [],
+      });
+      this.filtrosKey += 1;
+      await this.cargarEstadisticas();
+    },
+  },
+  watch: {
+    provincia_id() {
+      if (!this.esAdmin) return;
+      this.cargarEstadisticas();
+    },
+    municipio_id() {
+      if (!this.esAdmin) return;
+      this.cargarEstadisticas();
+    },
+    oficina_id() {
+      if (!this.esAdmin) return;
+      this.cargarEstadisticas();
+    },
+    esAdmin(nuevoValor, valorAnterior) {
+      if (nuevoValor !== valorAnterior) {
+        this.cargarEstadisticas();
+      }
+    },
   },
   async mounted() {
     await this.cargarEstadisticas();
@@ -168,27 +221,36 @@ export default {
           Visualización de datos y métricas de trámites
         </p>
       </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <Button
+          variant="default"
+          size="sm"
+          class="gap-2"
+          @click="exportarPdf"
+          :disabled="exportando || cargando"
+        >
+          <FileDown v-if="!exportando" class="size-4" />
+          <Loader2 v-else class="size-4 animate-spin" />
+          Exportar PDF
+        </Button>
+      </div>
+    </div>
+
+    <div
+      v-if="esAdmin"
+      class="flex flex-wrap items-center gap-3"
+      :key="filtrosKey"
+    >
+      <ProvinciaFiltro />
+      <MunicipioFiltro />
+      <OficinaFiltro />
       <Button
+        v-if="hayFiltrosActivos"
         variant="outline"
         size="sm"
-        class="gap-2"
-        @click="cargarEstadisticas"
-        :disabled="cargando"
+        @click="limpiarFiltros"
       >
-        <RefreshCw v-if="!cargando" class="size-4" />
-        <Loader2 v-else class="size-4 animate-spin" />
-        Actualizar
-      </Button>
-      <Button
-        variant="default"
-        size="sm"
-        class="gap-2"
-        @click="exportarPdf"
-        :disabled="exportando || cargando"
-      >
-        <FileDown v-if="!exportando" class="size-4" />
-        <Loader2 v-else class="size-4 animate-spin" />
-        Exportar PDF
+        Limpiar filtros
       </Button>
     </div>
 
@@ -383,4 +445,3 @@ export default {
     </template>
   </div>
 </template>
-

@@ -34,3 +34,19 @@ pub async fn get_nucleos(
         .fetch_all(db)
         .await
 }
+
+pub async fn crear_nucleo(
+    db: &Pool<Postgres>,
+    direccion: &str,
+    bodega_id: i32,
+) -> Result<i32, Error> {
+    let id: i32 = sqlx::query_scalar(
+        "insert into nucleo (direccion, bodega_id) values ($1, $2) returning id;",
+    )
+    .bind(direccion)
+    .bind(bodega_id)
+    .fetch_one(db)
+    .await?;
+
+    Ok(id)
+}

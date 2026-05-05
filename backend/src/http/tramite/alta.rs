@@ -18,7 +18,9 @@ use crate::{
 
 #[derive(Deserialize)]
 pub struct AltaDto {
-    pub nucleo_id: i32,
+    pub nucleo_id: Option<i32>,
+    pub nuevo_nucleo_nombre: Option<String>,
+    pub bodega_id: Option<i32>,
 }
 
 pub async fn crear_alta_h(
@@ -26,7 +28,34 @@ pub async fn crear_alta_h(
     Extension(usr): Extension<UsuarioJwt>,
     Js(body): Js<AltaDto>,
 ) -> Response {
-    match crear_tramite_alta(&state.db, &usr, body.nucleo_id).await {
+    let (nucleo_id, nuevo_nombre, bodega_id) = if let Some(nombre) = &body.nuevo_nucleo_nombre {
+        if body.bodega_id.is_none() {
+            return (
+                StatusCode::BAD_REQUEST,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Warn.as_str(),
+                    description: "Se requiere seleccionar una bodega para crear un nuevo núcleo",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+        (None, Some(nombre.clone()), body.bodega_id.unwrap())
+    } else if let Some(id) = body.nucleo_id {
+        (Some(id), None, 0)
+    } else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Warn.as_str(),
+                description: "Debes seleccionar un núcleo o crear uno nuevo",
+                data: None
+            })),
+        )
+            .into_response();
+    };
+
+    match crear_tramite_alta(&state.db, &usr, nucleo_id, nuevo_nombre, bodega_id).await {
         Ok(_) => (
             StatusCode::CREATED,
             Js(json!(Ress::<()> {

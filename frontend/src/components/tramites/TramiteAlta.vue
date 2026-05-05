@@ -86,12 +86,16 @@ export default {
     loading_crear: boolean;
     nucleos: Nucleo[];
     nucleo_id: number | null;
+    crear_nuevo_nucleo: boolean;
+    nuevo_nucleo_nombre: string;
   } {
     return {
       open: false,
       loading_crear: false,
       nucleos: [],
       nucleo_id: null,
+      crear_nuevo_nucleo: false,
+      nuevo_nucleo_nombre: "",
     };
   },
   computed: {
@@ -124,17 +128,29 @@ export default {
       }
     },
     async solicitarAlta() {
-      if (!this.nucleo_id) return;
+      if (this.crear_nuevo_nucleo) {
+        if (!this.nuevo_nucleo_nombre.trim() || !this.bodega_id) return;
+      } else {
+        if (!this.nucleo_id) return;
+      }
 
       this.loading_crear = true;
       try {
-        const res = await api.post("/tramite/alta", {
-          nucleo_id: this.nucleo_id,
-        });
+        const payload: Record<string, any> = {};
+        if (this.crear_nuevo_nucleo) {
+          payload.nuevo_nucleo_nombre = this.nuevo_nucleo_nombre.trim();
+          payload.bodega_id = this.bodega_id;
+        } else {
+          payload.nucleo_id = this.nucleo_id;
+        }
+
+        const res = await api.post("/tramite/alta", payload);
 
         if (res?.status === 201) {
           this.open = false;
           this.nucleo_id = null;
+          this.crear_nuevo_nucleo = false;
+          this.nuevo_nucleo_nombre = "";
           this.$emit("created");
         }
       } catch (error) {
@@ -200,7 +216,27 @@ export default {
             <!-- Núcleo -->
             <div class="space-y-2">
               <label class="text-sm font-medium">Núcleo</label>
-              <Select v-model="nucleo_id" :disabled="!bodega_id">
+              <div class="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  id="crear_nuevo_nucleo"
+                  v-model="crear_nuevo_nucleo"
+                  class="w-4 h-4"
+                />
+                <label for="crear_nuevo_nucleo" class="text-sm cursor-pointer">
+                  ¿El núcleo no existe? Crear nuevo
+                </label>
+              </div>
+
+              <div v-if="crear_nuevo_nucleo" class="space-y-2">
+                <input
+                  v-model="nuevo_nucleo_nombre"
+                  type="text"
+                  placeholder="Nombre del nuevo núcleo"
+                  class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+              <Select v-else v-model="nucleo_id" :disabled="!bodega_id">
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona un núcleo" />
                 </SelectTrigger>
@@ -226,7 +262,7 @@ export default {
             </DialogClose>
             <Button
               @click="solicitarAlta"
-              :disabled="!nucleo_id || loading_crear"
+              :disabled="(crear_nuevo_nucleo ? (!nuevo_nucleo_nombre.trim() || !bodega_id) : !nucleo_id) || loading_crear"
             >
               <Loader2 v-if="loading_crear" class="mr-2 size-4 animate-spin" />
               Confirmar

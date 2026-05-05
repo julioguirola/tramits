@@ -1,19 +1,19 @@
 use sqlx::{Error, Pool, Postgres, types::Uuid};
 
-use crate::repos::usuario::UsuarioJwt;
+use crate::repos::{nucleo::crear_nucleo, usuario::UsuarioJwt};
 
 pub async fn crear_tramite_alta(
     db: &Pool<Postgres>,
     usr: &UsuarioJwt,
-    nucleo_id: i32,
+    nucleo_id: Option<i32>,
+    nuevo_nucleo_nombre: Option<String>,
+    bodega_id: i32,
 ) -> Result<Uuid, Error> {
-    // Obtener persona_id del usuario
     let persona_id: Uuid = sqlx::query_scalar("select persona_id from usuario where id = $1;")
         .bind(usr.sub)
         .fetch_one(db)
         .await?;
 
-    // Verificar si la persona ya tiene un núcleo asignado
     let tiene_nucleo: Option<i32> =
         sqlx::query_scalar("select nucleo_id from persona where id = $1;")
             .bind(persona_id)
@@ -26,7 +26,6 @@ pub async fn crear_tramite_alta(
         )));
     }
 
-    // Verificar si ya tiene una solicitud de alta pendiente o en proceso
     let tiene_solicitud: Option<Uuid> = sqlx::query_scalar(
         "select id from tramite 
          where persona_id = $1 
@@ -43,7 +42,16 @@ pub async fn crear_tramite_alta(
         )));
     }
 
-    // Crear el trámite de alta
+    let nucleo_id = match nucleo_id {
+        Some(id) => id,
+        None => {
+            let nombre = nuevo_nucleo_nombre.as_ref().ok_or_else(|| {
+                Error::Protocol(String::from("Nombre del núcleo requerido"))
+            })?;
+            crear_nucleo(db, nombre, bodega_id).await?
+        }
+    };
+
     let tramite_id: Uuid = sqlx::query_scalar(
         "insert into tramite (tipo_id, persona_id, nucleo_id, estado_id) 
          values (1, $1, $2, 1) 

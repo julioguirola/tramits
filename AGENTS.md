@@ -4,7 +4,7 @@
 
 ## Preferencias del agente
 
-- Solo hacer cambios.
+- Solo hacer cambios, a menos que esté en mode plan.
 - No conversar ni explicar nada, salvo cuando este en modo plan.
 
 **Tramits** es una plataforma web para la gestión de trámites de núcleos familiares en Cuba. Permite a los ciudadanos (consumidores) solicitar alta o baja de núcleos de forma online, eliminando la necesidad de presentarse presencialmente en las oficinas.

@@ -303,7 +303,13 @@ async fn generar_tramites(pool: &Pool<Postgres>, cantidad: usize) -> Result<(), 
         if let Some(reg_id) = registrador_id {
             inserts += &format!(
                 "insert into tramite (persona_id, registrador_id, nucleo_id, tipo_id, estado_id, fecha_solicitud, fecha_finalizado) values ('{}', '{}', {}, {}, {}, {}, {});\n",
-                persona_id, reg_id, nucleo_id, tipo_id, estado_id, fecha_solicitud, fecha_finalizado
+                persona_id,
+                reg_id,
+                nucleo_id,
+                tipo_id,
+                estado_id,
+                fecha_solicitud,
+                fecha_finalizado
             );
         } else {
             inserts += &format!(
