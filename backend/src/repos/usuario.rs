@@ -5,7 +5,7 @@ use argon2::{
     password_hash::{SaltString, rand_core::OsRng},
 };
 
-use sqlx::{Error, Pool, Postgres, prelude::FromRow, types::Uuid};
+use sqlx::{Arguments, Error, Pool, Postgres, prelude::FromRow, types::Uuid};
 use tracing::error;
 
 use hmac::{Hmac, Mac};
@@ -59,6 +59,18 @@ pub struct UsuarioInfo {
     pub nucleo: Option<String>,
     pub numero_nucleo: Option<i32>,
     pub bodega: Option<String>,
+    pub oficina: Option<String>,
+    pub municipio: String,
+    pub provincia: String,
+}
+
+#[derive(Serialize, FromRow, Debug)]
+pub struct UsuarioListado {
+    pub id: Uuid,
+    pub email: String,
+    pub nombre: String,
+    pub apellido: String,
+    pub rol: String,
     pub oficina: Option<String>,
     pub municipio: String,
     pub provincia: String,
@@ -171,4 +183,134 @@ pub async fn login_usuario(
     } else {
         Ok((String::default(), false))
     }
+}
+
+pub async fn listar_usuarios(
+    db: &Pool<Postgres>,
+    limit: usize,
+    offset: usize,
+    provincia_id: Option<i32>,
+    municipio_id: Option<i32>,
+    oficina_id: Option<i32>,
+) -> Result<Vec<UsuarioListado>, Error> {
+    let mut query = String::from(
+        "select u.id, u.email, p.nombre, p.apellido, ur.nombre as rol,
+                case when u.oficina_id is not null then o_reg.nombre else o_pers.nombre end as oficina,
+                case when u.oficina_id is not null then m_reg.nombre else m_pers.nombre end as municipio,
+                case when u.oficina_id is not null then pr_reg.nombre else pr_pers.nombre end as provincia
+         from usuario u
+         join persona p on p.id = u.persona_id
+         join usuario_rol ur on ur.id = u.rol_id
+         left join oficina o_reg on o_reg.id = u.oficina_id
+         left join municipio m_reg on m_reg.id = o_reg.municipio_id
+         left join provincia pr_reg on pr_reg.id = m_reg.provincia_id
+         left join nucleo n on n.id = p.nucleo_id
+         left join bodega b on b.id = n.bodega_id
+         left join oficina o_pers on o_pers.id = b.oficina_id
+         left join municipio m_pers on m_pers.id = o_pers.municipio_id
+         left join provincia pr_pers on pr_pers.id = m_pers.provincia_id
+         where 1=1",
+    );
+
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
+
+    if let Some(provincia) = provincia_id {
+        query.push_str(&format!(
+            " and ((u.oficina_id is not null and pr_reg.id = ${}) or (u.oficina_id is null and pr_pers.id = ${}))",
+            param_count, param_count + 1
+        ));
+        let _ = args.add(provincia);
+        let _ = args.add(provincia);
+        param_count += 2;
+    }
+    if let Some(municipio) = municipio_id {
+        query.push_str(&format!(
+            " and ((u.oficina_id is not null and m_reg.id = ${}) or (u.oficina_id is null and m_pers.id = ${}))",
+            param_count, param_count + 1
+        ));
+        let _ = args.add(municipio);
+        let _ = args.add(municipio);
+        param_count += 2;
+    }
+    if let Some(oficina) = oficina_id {
+        query.push_str(&format!(
+            " and ((u.oficina_id is not null and o_reg.id = ${}) or (u.oficina_id is null and o_pers.id = ${}))",
+            param_count, param_count + 1
+        ));
+        let _ = args.add(oficina);
+        let _ = args.add(oficina);
+
+        param_count += 2;
+    }
+
+    query.push_str(&format!(
+        " order by p.apellido, p.nombre limit ${} offset ${};",
+        param_count,
+        param_count + 1
+    ));
+    let _ = args.add(limit as i64);
+    let _ = args.add(offset as i64);
+
+    sqlx::query_as_with::<_, UsuarioListado, _>(&query, args)
+        .fetch_all(db)
+        .await
+}
+
+pub async fn contar_usuarios(
+    db: &Pool<Postgres>,
+    provincia_id: Option<i32>,
+    municipio_id: Option<i32>,
+    oficina_id: Option<i32>,
+) -> Result<i64, Error> {
+    let mut query = String::from(
+        "select count(*)
+         from usuario u
+         join persona p on p.id = u.persona_id
+         join usuario_rol ur on ur.id = u.rol_id
+         left join oficina o_reg on o_reg.id = u.oficina_id
+         left join municipio m_reg on m_reg.id = o_reg.municipio_id
+         left join provincia pr_reg on pr_reg.id = m_reg.provincia_id
+         left join nucleo n on n.id = p.nucleo_id
+         left join bodega b on b.id = n.bodega_id
+         left join oficina o_pers on o_pers.id = b.oficina_id
+         left join municipio m_pers on m_pers.id = o_pers.municipio_id
+         left join provincia pr_pers on pr_pers.id = m_pers.provincia_id
+         where 1=1",
+    );
+    let mut args = sqlx::postgres::PgArguments::default();
+    let mut param_count = 1;
+
+    if let Some(provincia) = provincia_id {
+        query.push_str(&format!(
+            " and ((u.oficina_id is not null and pr_reg.id = ${}) or (u.oficina_id is null and pr_pers.id = ${}))",
+            param_count, param_count + 1
+        ));
+        let _ = args.add(provincia);
+        let _ = args.add(provincia);
+        param_count += 2;
+    }
+    if let Some(municipio) = municipio_id {
+        query.push_str(&format!(
+            " and ((u.oficina_id is not null and m_reg.id = ${}) or (u.oficina_id is null and m_pers.id = ${}))",
+            param_count, param_count + 1
+        ));
+        let _ = args.add(municipio);
+        let _ = args.add(municipio);
+        param_count += 2;
+    }
+    if let Some(oficina) = oficina_id {
+        query.push_str(&format!(
+            " and ((u.oficina_id is not null and o_reg.id = ${}) or (u.oficina_id is null and o_pers.id = ${}))",
+            param_count, param_count + 1
+        ));
+        let _ = args.add(oficina);
+        let _ = args.add(oficina);
+    }
+
+    query.push_str(";");
+    let count: (i64,) = sqlx::query_as_with::<_, (i64,), _>(&query, args)
+        .fetch_one(db)
+        .await?;
+    Ok(count.0)
 }

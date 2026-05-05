@@ -34,11 +34,13 @@ Provincia (15 en Cuba)
 
 ```bash
 cd frontend
-bun install        # instalar dependencias
+bun i              # instalar dependencias (importante: usar 'i', no 'install')
 bun run dev        # desarrollo con Vite
-bun run build      # producción: type-check + vite build
+bun run build      # VERIFICAR build: type-check + vite build (siempre ejecutar antes de commit)
 bun run type-check # solo validación de tipos
 ```
+
+> **Importante**: Verificar que `bun run build` pasa sin errores antes de hacer commit.
 
 Paquetes destacados instalados:
 - `@unovis/vue` + `@unovis/ts` - Gráficos interactivos
@@ -106,6 +108,93 @@ Ubicación: `frontend/src/components/tramites/GraficaPastel.vue` y `GraficaBarra
 - Tooltips con información enriquecida
 - Lazy loading con `defineAsyncComponent` + `<Suspense>`
 - Exportación PDF con `modern-screenshot` + `jspdf`
+
+## Backend Response Format
+
+All API responses use the `Ress<T>` struct:
+
+```rust
+pub struct Ress<T> {
+    pub message: &'static str,   // "Éxito", "Error", "Atención", "Información"
+    pub description: &'static str,  // Human-readable message
+    pub data: Option<T>,         // Actual payload
+}
+```
+
+**Message types**:
+| Message | Toast Type | Use Case |
+|---------|-----------|----------|
+| `"Éxito"` | `toast.success()` | Operation completed successfully |
+| `"Error"` | `toast.error()` | Operation failed |
+| `"Atención"` | `toast.warning()` | Validation issues, business rule warnings |
+| `"Información"` | `toast.info()` | Informational messages |
+
+**Example response**:
+```json
+{
+  "message": "Éxito",
+  "description": "Trámite procesado correctamente",
+  "data": { "id": "uuid-here" }
+}
+```
+
+## Frontend Toast Notifications
+
+The frontend uses `vue-sonner` for toast notifications. Toast handling is **automático** via axios interceptor.
+
+**Setup**:
+- `Toaster` component is registered in `App.vue`
+- `toast_trigger()` function in `frontend/src/lib/utils.ts` handles all responses
+- Axios interceptor at `api.interceptors.response` calls `toast_trigger()` on every response
+
+**How it works**:
+```typescript
+// frontend/src/lib/utils.ts
+api.interceptors.response.use(
+  (res) => {
+    toast_trigger(res.data);  // Auto-show toast on success
+    return res;
+  },
+  (err: AxiosError) => {
+    if (err.status == 401) {
+      router.push("/");  // Redirect to login on auth failure
+    }
+    if (err.response) {
+      toast_trigger(err.response.data);  // Auto-show toast on error
+    }
+    return err.response;
+  },
+);
+```
+
+**Toast trigger function**:
+```typescript
+enum Respuesta {
+  Success = "Éxito",
+  Error = "Error",
+  Warn = "Atención",
+  Info = "Información",
+}
+
+export function toast_trigger(res: any) {
+  switch (res.message) {
+    case Respuesta.Success:
+      toast.success(Respuesta.Success, { description: res.description });
+      break;
+    case Respuesta.Error:
+      toast.error(Respuesta.Error, { description: res.description });
+      break;
+    case Respuesta.Warn:
+      toast.warning(Respuesta.Warn, { description: res.description });
+      break;
+    case Respuesta.Info:
+      toast.info(Respuesta.Info, { description: res.description });
+      break;
+    default:
+      toast.error(Respuesta.Error, { description: res });
+  }
+}
+```
 
 ## CI / Production
 

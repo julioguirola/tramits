@@ -3,6 +3,7 @@ import Login from "../Login.vue";
 import Register from "@/Register.vue";
 import Dashboard from "@/Dashboard.vue";
 import Bienvenida from "@/components/dashboard/Bienvenida.vue";
+import UsuariosAdmin from "@/components/admin/UsuariosAdmin.vue";
 import MiInformacion from "@/components/persona/MiInformacion.vue";
 import NuevoTramite from "@/components/tramites/NuevoTramite.vue";
 import Solicitudes from "@/components/tramites/Solicitudes.vue";
@@ -48,7 +49,7 @@ const router = createRouter({
         { path: "tramites", component: Solicitudes },
         { path: "historial", component: HistorialRegistrador },
         { path: "estadisticas", component: Estadisticas },
-        { path: "usuarios", component: Bienvenida },
+        { path: "usuarios", component: UsuariosAdmin },
       ],
     },
     {

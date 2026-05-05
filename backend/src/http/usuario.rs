@@ -1,11 +1,14 @@
 use crate::{
     AppState,
-    repos::usuario::{self, UsuarioInfo, UsuarioJwt, get_usuario_actual, jwt, login_usuario},
+    repos::usuario::{
+        self, UsuarioInfo, UsuarioJwt, contar_usuarios, get_usuario_actual, jwt, listar_usuarios,
+        login_usuario,
+    },
     tipos::{Respuesta, Ress},
 };
 use axum::{
     Extension, Json,
-    extract::State,
+    extract::{Query, State},
     http::{StatusCode, header::SET_COOKIE},
     response::{IntoResponse, Json as Js, Response},
 };
@@ -13,7 +16,24 @@ use serde::Deserialize;
 use serde_json::json;
 use sqlx::types::Uuid;
 use std::sync::Arc;
-use tracing::error;
+use tracing::{debug, error};
+
+#[derive(Deserialize)]
+pub struct UsuariosQuery {
+    pub page: Option<usize>,
+    pub limit: Option<usize>,
+    pub provincia_id: Option<i32>,
+    pub municipio_id: Option<i32>,
+    pub oficina_id: Option<i32>,
+}
+
+#[derive(serde::Serialize)]
+struct PaginatedResponse<T> {
+    usuarios: T,
+    total: i64,
+    page: usize,
+    limit: usize,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct UsuarioDto {
@@ -294,4 +314,75 @@ pub async fn logout_h() -> Response {
         })),
     )
         .into_response()
+}
+
+pub async fn listar_usuarios_h(
+    State(state): State<Arc<AppState>>,
+    Extension(usr): Extension<UsuarioJwt>,
+    Query(params): Query<UsuariosQuery>,
+) -> Response {
+    if usr.rol != "Administrador" {
+        return (
+            StatusCode::FORBIDDEN,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "No autorizado",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(10).max(1).min(100);
+    let offset = (page - 1) * limit;
+
+    let total = contar_usuarios(
+        &state.db,
+        params.provincia_id,
+        params.municipio_id,
+        params.oficina_id,
+    )
+    .await
+    .unwrap_or(0);
+    let result = listar_usuarios(
+        &state.db,
+        limit,
+        offset,
+        params.provincia_id,
+        params.municipio_id,
+        params.oficina_id,
+    )
+    .await;
+
+    debug!("Este es el resultado: {:?}", &result);
+
+    match result {
+        Ok(usuarios) => (
+            StatusCode::OK,
+            Js(json!(Ress::<PaginatedResponse<_>> {
+                message: Respuesta::Success.as_str(),
+                description: "Usuarios obtenidos",
+                data: Some(PaginatedResponse {
+                    usuarios,
+                    total,
+                    page,
+                    limit,
+                })
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("{}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Error obteniendo usuarios",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
+    }
 }

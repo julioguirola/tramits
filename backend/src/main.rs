@@ -88,6 +88,7 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/oficina", get(oficina::get_oficinas_h))
         .route("/bodega", get(bodega::get_bodegas_h))
         .route("/nucleo", get(nucleo::get_nucleos_h))
+        .route("/usuarios", get(usuario::listar_usuarios_h))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes = Router::new()
