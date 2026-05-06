@@ -10,6 +10,7 @@ use tracing::info;
 mod config;
 mod db;
 mod http;
+mod mail;
 mod middlewares;
 mod repos;
 mod tipos;

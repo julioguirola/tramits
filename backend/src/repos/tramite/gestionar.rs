@@ -67,22 +67,24 @@ pub async fn gestionar_tramite(
     match accion {
         AccionGestion::Completar => {
             if tramite.tipo_id == 2 {
-                let persona_update = sqlx::query("update persona set nucleo_id = null where id = $1;")
-                    .bind(tramite.persona_id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(GestionarTramiteError::Db)?;
+                let persona_update =
+                    sqlx::query("update persona set nucleo_id = null where id = $1;")
+                        .bind(tramite.persona_id)
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(GestionarTramiteError::Db)?;
 
                 if persona_update.rows_affected() == 0 {
                     return Err(GestionarTramiteError::NoActualizado);
                 }
             } else if tramite.tipo_id == 1 {
-                let persona_update = sqlx::query("update persona set nucleo_id = $1 where id = $2;")
-                    .bind(tramite.nucleo_id)
-                    .bind(tramite.persona_id)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(GestionarTramiteError::Db)?;
+                let persona_update =
+                    sqlx::query("update persona set nucleo_id = $1 where id = $2;")
+                        .bind(tramite.nucleo_id)
+                        .bind(tramite.persona_id)
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(GestionarTramiteError::Db)?;
 
                 if persona_update.rows_affected() == 0 {
                     return Err(GestionarTramiteError::NoActualizado);

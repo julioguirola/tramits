@@ -2,6 +2,9 @@ FROM rust:slim-trixie AS builder
 
 WORKDIR /app
 
+RUN apt update
+RUN apt install pkg-config libssl-dev libssl3 ca-certificates -y
+
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
 

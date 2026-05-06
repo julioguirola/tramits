@@ -39,6 +39,9 @@ services:
       - REGISTRAR_EMAIL=${REGISTRAR_EMAIL}
       - REGISTRAR_PASSWORD=${REGISTRAR_PASSWORD}
       - REDIS_URL=${REDIS_URL}
+      - MAIL_URL=${MAIL_URL}
+      - MAIL_USER=${MAIL_USER}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
     ports:
       - ${PORT}:${PORT}
     volumes:
@@ -60,3 +63,9 @@ services:
     image: redis:8.4.0-bookworm
     ports:
       - 6377:6379
+
+  mail:
+    image: mailhog/mailhog:v1.0.0 
+    ports:
+      - 1025:1025
+      - 8025:8025

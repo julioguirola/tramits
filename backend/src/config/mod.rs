@@ -18,6 +18,9 @@ pub struct EnvConfig {
     pub registrar_email: String,
     pub registrar_password: String,
     pub redis_url: String,
+    pub mail_url: String,
+    pub mail_user: String,
+    pub mail_password: String,
 }
 
 impl EnvConfig {
@@ -47,6 +50,10 @@ impl EnvConfig {
         let registrar_password = env::var("REGISTRAR_PASSWORD")
             .unwrap_or_else(|_| panic!("REGISTRAR_PASSWORD must be set"));
         let redis_url = env::var("REDIS_URL").unwrap_or_else(|_| panic!("REDIS_URL must be set"));
+        let mail_url = env::var("MAIL_URL").unwrap_or_else(|_| panic!("MAIL_URL must be set"));
+        let mail_user = env::var("MAIL_USER").unwrap_or_else(|_| panic!("MAIL_USER must be set"));
+        let mail_password =
+            env::var("MAIL_PASSWORD").unwrap_or_else(|_| panic!("MAIL_PASSWORD must be set"));
 
         EnvConfig {
             db_host,
@@ -65,6 +72,9 @@ impl EnvConfig {
             registrar_email,
             registrar_password,
             redis_url,
+            mail_url,
+            mail_user,
+            mail_password,
         }
     }
 }

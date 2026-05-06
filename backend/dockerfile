@@ -2,15 +2,10 @@ FROM rust:slim-trixie
 
 WORKDIR /app
 
-COPY Cargo.toml Cargo.lock ./
+RUN apt update
+RUN apt install pkg-config libssl-dev libssl3 ca-certificates -y
 
-# RUN mkdir src && echo "fn main() {}" > src/main.rs
-# RUN echo "fn main() {}" > src/seeder.rs
-# RUN echo "fn main() {}" > src/migration.rs
-# RUN cargo build
-# RUN rm src/main.rs
-# RUN rm src/seeder.rs
-# RUN rm src/migration.rs
+COPY Cargo.toml Cargo.lock ./
 
 COPY src ./src
 RUN cargo build
