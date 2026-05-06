@@ -1,7 +1,10 @@
 use serde::Deserialize;
 use sqlx::{Error, Pool, Postgres, prelude::FromRow, types::Uuid};
 
-use crate::repos::usuario::UsuarioJwt;
+use crate::{
+    mail::{EmailType, send_email},
+    repos::usuario::UsuarioJwt,
+};
 
 #[derive(Deserialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]

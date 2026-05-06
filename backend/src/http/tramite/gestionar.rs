@@ -13,6 +13,7 @@ use tracing::error;
 
 use crate::{
     AppState,
+    mail::{EmailType, send_email},
     repos::{
         tramite::gestionar::{AccionGestion, GestionarTramiteError, gestionar_tramite},
         usuario::UsuarioJwt,
@@ -44,15 +45,25 @@ pub async fn gestionar_tramite_h(
     }
 
     match gestionar_tramite(&state.db, &usr, tramite_id, body.accion).await {
-        Ok(_) => (
-            StatusCode::OK,
-            Js(json!(Ress::<()> {
-                message: Respuesta::Success.as_str(),
-                description: "Solicitud gestionada correctamente",
-                data: None
-            })),
-        )
-            .into_response(),
+        Ok(_) => {
+            let _ = send_email(
+                String::from("Pepe"),
+                String::from("pepe@mail.com"),
+                String::from("Juan"),
+                String::from("juan@mail.com"),
+                EmailType::TtramiteAltaCompletado,
+                &state.env_config,
+            );
+            (
+                StatusCode::OK,
+                Js(json!(Ress::<()> {
+                    message: Respuesta::Success.as_str(),
+                    description: "Solicitud gestionada correctamente",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
         Err(GestionarTramiteError::NoEncontrado) => (
             StatusCode::NOT_FOUND,
             Js(json!(Ress::<u8> {
