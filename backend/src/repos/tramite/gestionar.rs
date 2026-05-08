@@ -1,7 +1,11 @@
+use std::sync::Arc;
+
 use serde::Deserialize;
-use sqlx::{Error, Pool, Postgres, prelude::FromRow, types::Uuid};
+use sqlx::{Error, prelude::FromRow, types::Uuid};
+use tracing::{debug, error};
 
 use crate::{
+    AppState,
     mail::{EmailType, send_email},
     repos::usuario::UsuarioJwt,
 };
@@ -32,8 +36,15 @@ pub enum GestionarTramiteError {
     Db(Error),
 }
 
+#[derive(FromRow, Debug)]
+struct EmailUser {
+    nombre: String,
+    apellido: String,
+    email: String,
+}
+
 pub async fn gestionar_tramite(
-    db: &Pool<Postgres>,
+    state: Arc<AppState>,
     usr: &UsuarioJwt,
     tramite_id: Uuid,
     accion: AccionGestion,
@@ -44,7 +55,7 @@ pub async fn gestionar_tramite(
          where id = $1;",
     )
     .bind(tramite_id)
-    .fetch_optional(db)
+    .fetch_optional(&state.db)
     .await
     .map_err(GestionarTramiteError::Db)?;
 
@@ -65,7 +76,7 @@ pub async fn gestionar_tramite(
         return Err(GestionarTramiteError::NoEnProceso);
     }
 
-    let mut tx = db.begin().await.map_err(GestionarTramiteError::Db)?;
+    let mut tx = state.db.begin().await.map_err(GestionarTramiteError::Db)?;
 
     match accion {
         AccionGestion::Completar => {
@@ -134,5 +145,41 @@ pub async fn gestionar_tramite(
     }
 
     tx.commit().await.map_err(GestionarTramiteError::Db)?;
+    let user_envia = sqlx::query_as::<_, EmailUser>(
+        "select p.nombre, p.apellido, u.email
+         from usuario u
+         join persona p on u.persona_id = p.id
+         where u.id = $1;",
+    )
+    .bind(usr.sub)
+    .fetch_one(&state.db)
+    .await;
+
+    let user_recibe = sqlx::query_as::<_, EmailUser>(
+        "select p.nombre, p.apellido, u.email
+         from tramite t
+         join persona p on t.persona_id = p.id
+         join usuario u on p.id = u.persona_id
+         where t.id = $1 and u.rol_id = 1;",
+    )
+    .bind(tramite_id)
+    .fetch_one(&state.db)
+    .await;
+
+    if user_envia.is_ok()
+        && let usr_env = user_envia.unwrap()
+        && user_recibe.is_ok()
+        && let usr_rc = user_recibe.unwrap()
+    {
+        let _ = send_email(
+            String::from(usr_env.nombre) + " " + &String::from(usr_env.apellido),
+            String::from(usr.email.clone()),
+            String::from(usr_rc.nombre) + " " + &String::from(usr_rc.apellido),
+            String::from(usr_rc.email),
+            EmailType::TramiteLibretaCompletado,
+            &state.env_config,
+        );
+    }
+
     Ok(())
 }

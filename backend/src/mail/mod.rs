@@ -23,7 +23,6 @@ const COLOR_MUTED: &str = "oklch(0.967 0.001 286.375)";
 const COLOR_MUTED_FOREGROUND: &str = "oklch(0.552 0.016 285.938)";
 const COLOR_BORDER: &str = "oklch(0.92 0.004 286.32)";
 const COLOR_DESTRUCTIVE: &str = "oklch(0.577 0.245 27.325)";
-const COLOR_RING: &str = "oklch(0.841 0.238 128.85)";
 
 fn email_layout(
     title: &str,
@@ -126,33 +125,33 @@ pub fn send_email(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let body = match &tipo {
         EmailType::TtramiteAltaCompletado => tramite_completado(
-            "Tramite de alta completado",
-            "Ya estas asociado al nucleo correspondiente. Puedes revisar el estado en la plataforma.",
+            "Trámite de alta completado",
+            "Ya estás asociado al núcleo correspondiente. Puedes revisar el estado en la plataforma.",
         ),
         EmailType::TtramiteAltaRechazado => tramite_rechazado(
-            "Tramite de alta rechazado",
+            "Trámite de alta rechazado",
             "Revisa los datos enviados y vuelve a intentarlo si es necesario.",
         ),
         EmailType::TtramiteBajaCompletado => tramite_completado(
-            "Tramite de baja completado",
-            "Ya no estas asociado al nucleo anterior. Puedes verificar el cambio en tu perfil.",
+            "Trámite de baja completado",
+            "Ya no estás asociado al núcleo anterior. Puedes verificar el cambio en tu perfil.",
         ),
         EmailType::TtramiteBajaRechazado => tramite_rechazado(
-            "Tramite de baja rechazado",
+            "Trámite de baja rechazado",
             "Si consideras que hay un error, contacta a tu oficina de registro.",
         ),
         EmailType::TramiteLibretaCompletado => tramite_completado(
-            "Tramite de libreta sanitaria completado",
+            "Trámite de libreta completado",
             "La solicitud fue aprobada y registrada en el sistema.",
         ),
         EmailType::TramiteLibretaRechazado => tramite_rechazado(
-            "Tramite de libreta sanitaria rechazado",
-            "Completa o corrige la informacion y vuelve a solicitar el tramite.",
+            "Trámite de libreta rechazado",
+            "Completa o corrige la información y vuelve a solicitar el trámite.",
         ),
         EmailType::MailWithBody(_, raw_body) => email_layout(
             "Mensaje de Tramits",
-            "Notificacion del sistema",
-            "INFORMACION",
+            "Notificación del sistema",
+            "INFORMACIÓN",
             COLOR_PRIMARY,
             raw_body,
         ),
@@ -163,8 +162,8 @@ pub fn send_email(
         EmailType::TtramiteAltaRechazado => "Trámite de alta rechazado",
         EmailType::TtramiteBajaCompletado => "Trámite de baja completado",
         EmailType::TtramiteBajaRechazado => "Trámite de baja rechazado",
-        EmailType::TramiteLibretaRechazado => "Trámite de libreta sanitaria rechazado",
-        EmailType::TramiteLibretaCompletado => "Trámite de libreta sanitaria completado",
+        EmailType::TramiteLibretaRechazado => "Trámite de libreta rechazado",
+        EmailType::TramiteLibretaCompletado => "Trámite de libreta completado",
         EmailType::MailWithBody(sub, _) => sub.as_str(),
     };
 
