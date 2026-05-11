@@ -6,12 +6,8 @@ use tracing::error;
 use crate::config::EnvConfig;
 
 pub enum EmailType {
-    TtramiteAltaCompletado,
-    TtramiteAltaRechazado,
-    TtramiteBajaCompletado,
-    TtramiteBajaRechazado,
-    TramiteLibretaCompletado,
-    TramiteLibretaRechazado,
+    TramiteCompletado,
+    TramiteRechazado,
     MailWithBody(String, String),
 }
 
@@ -124,29 +120,13 @@ pub fn send_email(
     env_config: &EnvConfig,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let body = match &tipo {
-        EmailType::TtramiteAltaCompletado => tramite_completado(
-            "Trámite de alta completado",
-            "Ya estás asociado al núcleo correspondiente. Puedes revisar el estado en la plataforma.",
+        EmailType::TramiteCompletado => tramite_completado(
+            "Trámite completado",
+            "Tu solicitud fue aprobada y registrada en el sistema.",
         ),
-        EmailType::TtramiteAltaRechazado => tramite_rechazado(
-            "Trámite de alta rechazado",
+        EmailType::TramiteRechazado => tramite_rechazado(
+            "Trámite rechazado",
             "Revisa los datos enviados y vuelve a intentarlo si es necesario.",
-        ),
-        EmailType::TtramiteBajaCompletado => tramite_completado(
-            "Trámite de baja completado",
-            "Ya no estás asociado al núcleo anterior. Puedes verificar el cambio en tu perfil.",
-        ),
-        EmailType::TtramiteBajaRechazado => tramite_rechazado(
-            "Trámite de baja rechazado",
-            "Si consideras que hay un error, contacta a tu oficina de registro.",
-        ),
-        EmailType::TramiteLibretaCompletado => tramite_completado(
-            "Trámite de libreta completado",
-            "La solicitud fue aprobada y registrada en el sistema.",
-        ),
-        EmailType::TramiteLibretaRechazado => tramite_rechazado(
-            "Trámite de libreta rechazado",
-            "Completa o corrige la información y vuelve a solicitar el trámite.",
         ),
         EmailType::MailWithBody(_, raw_body) => email_layout(
             "Mensaje de Tramits",
@@ -158,12 +138,8 @@ pub fn send_email(
     };
 
     let subject = match &tipo {
-        EmailType::TtramiteAltaCompletado => "Trámite de alta completado",
-        EmailType::TtramiteAltaRechazado => "Trámite de alta rechazado",
-        EmailType::TtramiteBajaCompletado => "Trámite de baja completado",
-        EmailType::TtramiteBajaRechazado => "Trámite de baja rechazado",
-        EmailType::TramiteLibretaRechazado => "Trámite de libreta rechazado",
-        EmailType::TramiteLibretaCompletado => "Trámite de libreta completado",
+        EmailType::TramiteCompletado => "Trámite completado",
+        EmailType::TramiteRechazado => "Trámite rechazado",
         EmailType::MailWithBody(sub, _) => sub.as_str(),
     };
 

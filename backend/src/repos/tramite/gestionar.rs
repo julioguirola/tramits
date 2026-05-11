@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use serde::Deserialize;
 use sqlx::{Error, prelude::FromRow, types::Uuid};
-use tracing::{debug, error};
 
 use crate::{
     AppState,
@@ -166,17 +165,20 @@ pub async fn gestionar_tramite(
     .fetch_one(&state.db)
     .await;
 
-    if user_envia.is_ok()
-        && let usr_env = user_envia.unwrap()
-        && user_recibe.is_ok()
-        && let usr_rc = user_recibe.unwrap()
+    if let Ok(usr_env) = user_envia
+        && let Ok(usr_rc) = user_recibe
     {
+        let email_type = match accion {
+            AccionGestion::Completar => EmailType::TramiteCompletado,
+            AccionGestion::Rechazar => EmailType::TramiteRechazado,
+        };
+
         let _ = send_email(
             String::from(usr_env.nombre) + " " + &String::from(usr_env.apellido),
             String::from(usr.email.clone()),
             String::from(usr_rc.nombre) + " " + &String::from(usr_rc.apellido),
             String::from(usr_rc.email),
-            EmailType::TramiteLibretaCompletado,
+            email_type,
             &state.env_config,
         );
     }
