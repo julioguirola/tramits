@@ -47,6 +47,7 @@ pub async fn gestionar_tramite(
     usr: &UsuarioJwt,
     tramite_id: Uuid,
     accion: AccionGestion,
+    motivo_rechazo: Option<String>,
 ) -> Result<(), GestionarTramiteError> {
     let tramite = sqlx::query_as::<_, TramiteEnProceso>(
         "select tipo_id, estado_id, registrador_id, persona_id, nucleo_id
@@ -170,7 +171,19 @@ pub async fn gestionar_tramite(
     {
         let email_type = match accion {
             AccionGestion::Completar => EmailType::TramiteCompletado,
-            AccionGestion::Rechazar => EmailType::TramiteRechazado,
+            AccionGestion::Rechazar => {
+                if let Some(motivo) = motivo_rechazo.as_deref() {
+                    EmailType::MailWithBody(
+                        "Trámite rechazado".to_string(),
+                        format!(
+                            "<p>Tu solicitud fue <strong>rechazada</strong>.</p><p><strong>Motivo:</strong> {}</p>",
+                            motivo.trim().replace('\n', "<br />")
+                        ),
+                    )
+                } else {
+                    EmailType::TramiteRechazado
+                }
+            }
         };
 
         let _ = send_email(

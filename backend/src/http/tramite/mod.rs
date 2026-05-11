@@ -1,6 +1,7 @@
 pub mod alta;
 pub mod baja;
 pub mod cancelar;
+pub mod correo;
 pub mod gestionar;
 pub mod historial;
 pub mod historial_registrador;

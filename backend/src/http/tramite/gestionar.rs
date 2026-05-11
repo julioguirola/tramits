@@ -23,6 +23,7 @@ use crate::{
 #[derive(Deserialize)]
 pub struct GestionDto {
     accion: AccionGestion,
+    motivo: Option<String>,
 }
 
 pub async fn gestionar_tramite_h(
@@ -43,7 +44,30 @@ pub async fn gestionar_tramite_h(
             .into_response();
     }
 
-    match gestionar_tramite(state.clone(), &usr, tramite_id, body.accion).await {
+    if matches!(body.accion, AccionGestion::Rechazar) {
+        let motivo = body.motivo.as_deref().unwrap_or("").trim();
+        if motivo.is_empty() {
+            return (
+                StatusCode::BAD_REQUEST,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "La causa del rechazo es obligatoria",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    }
+
+    match gestionar_tramite(
+        state.clone(),
+        &usr,
+        tramite_id,
+        body.accion,
+        body.motivo.clone(),
+    )
+    .await
+    {
         Ok(_) => (
             StatusCode::OK,
             Js(json!(Ress::<()> {

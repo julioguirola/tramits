@@ -1,8 +1,9 @@
 use crate::{
     AppState,
+    mail::{EmailType, send_email},
     repos::usuario::{
-        self, UsuarioInfo, UsuarioJwt, contar_usuarios, get_usuario_actual, jwt, listar_usuarios,
-        login_usuario,
+        self, UsuarioInfo, UsuarioJwt, actualizar_estado_usuario, contar_usuarios,
+        get_usuario_actual, jwt, listar_usuarios, login_usuario,
     },
     tipos::{Respuesta, Ress},
 };
@@ -40,6 +41,20 @@ pub struct UsuarioDto {
     email: String,
     pass_word: String,
     persona_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct EnviarCorreoUsuarioDto {
+    usuario_id: String,
+    asunto: String,
+    cuerpo: String,
+}
+
+#[derive(Deserialize)]
+pub struct ActualizarEstadoUsuarioDto {
+    usuario_id: String,
+    activo: bool,
+    motivo: Option<String>,
 }
 
 fn is_valid_email(email: &str) -> bool {
@@ -86,6 +101,16 @@ fn is_valid_email(email: &str) -> bool {
         return false;
     }
     true
+}
+
+async fn get_usuario_activo_por_email(
+    db: &sqlx::Pool<sqlx::Postgres>,
+    email: &str,
+) -> Result<Option<bool>, sqlx::Error> {
+    sqlx::query_scalar("select activo from usuario where email = $1;")
+        .bind(email)
+        .fetch_optional(db)
+        .await
 }
 
 pub async fn crear_usuario_h(
@@ -239,6 +264,18 @@ pub async fn login_usuario_h(
                 )
                     .into_response()
             } else {
+                if let Ok(Some(false)) = get_usuario_activo_por_email(&state.db, &body.email).await
+                {
+                    return (
+                        StatusCode::FORBIDDEN,
+                        Js(json!(Ress::<u8> {
+                            message: Respuesta::Warn.as_str(),
+                            description: "Tu cuenta ha sido desactivada, revisa tu correo para más información",
+                            data: None
+                        })),
+                    )
+                        .into_response();
+                }
                 (
                     StatusCode::UNAUTHORIZED,
                     Js(json!(Ress::<u8> {
@@ -250,15 +287,28 @@ pub async fn login_usuario_h(
                     .into_response()
             }
         }
-        Err(sqlx::Error::RowNotFound) => (
-            StatusCode::UNAUTHORIZED,
-            Js(json!(Ress::<u8> {
-                message: Respuesta::Error.as_str(),
-                description: "Nombre de usuario o contraseña incorrectos",
-                data: None
-            })),
-        )
-            .into_response(),
+        Err(sqlx::Error::RowNotFound) => {
+            if let Ok(Some(false)) = get_usuario_activo_por_email(&state.db, &body.email).await {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Js(json!(Ress::<u8> {
+                        message: Respuesta::Warn.as_str(),
+                        description: "Tu cuenta ha sido desactivada, revisa tu correo para más información",
+                        data: None
+                    })),
+                )
+                    .into_response();
+            }
+            (
+                StatusCode::UNAUTHORIZED,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Nombre de usuario o contraseña incorrectos",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
         Err(_) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Js(json!(Ress::<u8> {
@@ -379,6 +429,275 @@ pub async fn listar_usuarios_h(
                 Js(json!(Ress::<u8> {
                     message: Respuesta::Error.as_str(),
                     description: "Error obteniendo usuarios",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+#[derive(sqlx::FromRow)]
+struct EmailUser {
+    nombre: String,
+    apellido: String,
+    email: String,
+}
+
+pub async fn enviar_correo_usuario_h(
+    State(state): State<Arc<AppState>>,
+    Extension(usr): Extension<UsuarioJwt>,
+    Json(body): Json<EnviarCorreoUsuarioDto>,
+) -> Response {
+    if usr.rol != "Administrador" {
+        return (
+            StatusCode::FORBIDDEN,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "No autorizado",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let asunto = body.asunto.trim();
+    if asunto.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "El asunto es obligatorio",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let cuerpo = body.cuerpo.trim();
+    if cuerpo.is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "El cuerpo es obligatorio",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let usuario_id = match Uuid::parse_str(body.usuario_id.trim()) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Usuario inválido",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    let user_envia = sqlx::query_as::<_, EmailUser>(
+        "select p.nombre, p.apellido, u.email
+         from usuario u
+         join persona p on u.persona_id = p.id
+         where u.id = $1;",
+    )
+    .bind(usr.sub)
+    .fetch_one(&state.db)
+    .await;
+
+    let user_recibe = sqlx::query_as::<_, EmailUser>(
+        "select p.nombre, p.apellido, u.email
+         from usuario u
+         join persona p on u.persona_id = p.id
+         where u.id = $1;",
+    )
+    .bind(usuario_id)
+    .fetch_one(&state.db)
+    .await;
+
+    let (usr_env, usr_rc) = match (user_envia, user_recibe) {
+        (Ok(env), Ok(rec)) => (env, rec),
+        _ => {
+            return (
+                StatusCode::NOT_FOUND,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Usuario no encontrado",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    let result = send_email(
+        format!("{} {}", usr_env.nombre, usr_env.apellido),
+        usr_env.email,
+        format!("{} {}", usr_rc.nombre, usr_rc.apellido),
+        usr_rc.email,
+        EmailType::MailPlain(asunto.to_string(), cuerpo.to_string()),
+        &state.env_config,
+    );
+
+    match result {
+        Ok(_) => (
+            StatusCode::OK,
+            Js(json!(Ress::<()> {
+                message: Respuesta::Success.as_str(),
+                description: "Correo enviado correctamente",
+                data: None
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("Error enviando correo: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "No se pudo enviar el correo",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+pub async fn actualizar_estado_usuario_h(
+    State(state): State<Arc<AppState>>,
+    Extension(usr): Extension<UsuarioJwt>,
+    Json(body): Json<ActualizarEstadoUsuarioDto>,
+) -> Response {
+    if usr.rol != "Administrador" {
+        return (
+            StatusCode::FORBIDDEN,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "No autorizado",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let usuario_id = match Uuid::parse_str(body.usuario_id.trim()) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Usuario inválido",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    if usuario_id == usr.sub {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Warn.as_str(),
+                description: "No puedes desactivar tu propio usuario",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    if !body.activo {
+        let motivo = body.motivo.as_deref().unwrap_or("").trim();
+        if motivo.is_empty() {
+            return (
+                StatusCode::BAD_REQUEST,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "La causa de desactivación es obligatoria",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    }
+
+    match actualizar_estado_usuario(&state.db, &usuario_id, body.activo).await {
+        Ok(affected) if affected > 0 => {
+            if !body.activo {
+                let user_envia = sqlx::query_as::<_, EmailUser>(
+                    "select p.nombre, p.apellido, u.email
+                     from usuario u
+                     join persona p on u.persona_id = p.id
+                     where u.id = $1;",
+                )
+                .bind(usr.sub)
+                .fetch_one(&state.db)
+                .await;
+
+                let user_recibe = sqlx::query_as::<_, EmailUser>(
+                    "select p.nombre, p.apellido, u.email
+                     from usuario u
+                     join persona p on u.persona_id = p.id
+                     where u.id = $1;",
+                )
+                .bind(usuario_id)
+                .fetch_one(&state.db)
+                .await;
+
+                if let (Ok(usr_env), Ok(usr_rc)) = (user_envia, user_recibe) {
+                    let motivo = body.motivo.as_deref().unwrap_or("").trim();
+                    let _ = send_email(
+                        format!("{} {}", usr_env.nombre, usr_env.apellido),
+                        usr_env.email,
+                        format!("{} {}", usr_rc.nombre, usr_rc.apellido),
+                        usr_rc.email,
+                        EmailType::MailWithBody(
+                            "Cuenta desactivada".to_string(),
+                            format!(
+                                "<p>Tu cuenta ha sido desactivada.</p><p><strong>Motivo:</strong> {}</p>",
+                                motivo.replace('\n', "<br />")
+                            ),
+                        ),
+                        &state.env_config,
+                    );
+                }
+            }
+
+            (
+                StatusCode::OK,
+                Js(json!(Ress::<()> {
+                    message: Respuesta::Success.as_str(),
+                    description: "Estado del usuario actualizado",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
+        Ok(_) => (
+            StatusCode::NOT_FOUND,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "Usuario no encontrado",
+                data: None
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("Error actualizando estado de usuario: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Error actualizando estado del usuario",
                     data: None
                 })),
             )

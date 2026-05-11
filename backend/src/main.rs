@@ -71,6 +71,14 @@ async fn main() -> Result<(), sqlx::Error> {
             post(tramite::gestionar::gestionar_tramite_h),
         )
         .route(
+            "/tramite/{id}/correo",
+            post(tramite::correo::enviar_correo_tramite_h),
+        )
+        .route(
+            "/tramite/{id}/correo-registrador",
+            post(tramite::correo::enviar_correo_registrador_h),
+        )
+        .route(
             "/tramite/{id}/cancelar",
             post(tramite::cancelar::cancelar_tramite_h),
         )
@@ -90,6 +98,8 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/bodega", get(bodega::get_bodegas_h))
         .route("/nucleo", get(nucleo::get_nucleos_h))
         .route("/usuarios", get(usuario::listar_usuarios_h))
+        .route("/usuarios/estado", post(usuario::actualizar_estado_usuario_h))
+        .route("/usuarios/correo", post(usuario::enviar_correo_usuario_h))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 
     let routes = Router::new()

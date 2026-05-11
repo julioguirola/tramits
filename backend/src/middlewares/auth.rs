@@ -14,6 +14,7 @@ use hmac::{Hmac, Mac};
 use jwt::VerifyWithKey;
 use serde_json::json;
 use sha2::Sha256;
+use sqlx::Row;
 use std::{
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -68,9 +69,21 @@ pub async fn auth_m(State(estado): State<Arc<AppState>>, mut req: Request, next:
             if t.as_secs() > usr.exp {
                 warn!("Token expirado para: {}", &usr.email);
                 return unauthorized();
-            } else {
-                req.extensions_mut().insert(usr);
             }
+
+            let active = sqlx::query("select activo from usuario where id = $1")
+                .bind(usr.sub)
+                .fetch_optional(&estado.db)
+                .await;
+            let Ok(Some(row)) = active else {
+                return unauthorized();
+            };
+            let activo: bool = row.get("activo");
+            if !activo {
+                return unauthorized();
+            }
+
+            req.extensions_mut().insert(usr);
         }
         Err(e) => {
             error!("{}", e);

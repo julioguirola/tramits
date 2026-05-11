@@ -9,6 +9,7 @@ pub enum EmailType {
     TramiteCompletado,
     TramiteRechazado,
     MailWithBody(String, String),
+    MailPlain(String, String),
 }
 
 const COLOR_BACKGROUND: &str = "oklch(1 0 0)";
@@ -135,12 +136,23 @@ pub fn send_email(
             COLOR_PRIMARY,
             raw_body,
         ),
+        EmailType::MailPlain(_, raw_body) => {
+            let cuerpo = format!("<p>{}</p>", raw_body.replace('\n', "<br />"));
+            email_layout(
+                "Mensaje de Tramits",
+                "Notificación del sistema",
+                "INFORMACIÓN",
+                COLOR_PRIMARY,
+                &cuerpo,
+            )
+        }
     };
 
     let subject = match &tipo {
         EmailType::TramiteCompletado => "Trámite completado",
         EmailType::TramiteRechazado => "Trámite rechazado",
         EmailType::MailWithBody(sub, _) => sub.as_str(),
+        EmailType::MailPlain(sub, _) => sub.as_str(),
     };
 
     let email = Message::builder()

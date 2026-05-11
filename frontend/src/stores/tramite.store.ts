@@ -8,6 +8,7 @@ export interface Tramite {
   fecha_solicitud: string;
   fecha_finalizado: string | null;
   registrador: string | null;
+  registrador_id?: string | null;
   estado: string;
   persona_nombre: string | null;
   persona_apellido: string | null;
@@ -75,12 +76,16 @@ export const useTramiteStore = defineStore("tramite-store", {
         return false;
       }
     },
-    async gestionarTramite(
+  async gestionarTramite(
       tramiteId: string,
       accion: "completar" | "rechazar",
+      motivo?: string,
     ): Promise<boolean> {
       try {
-        const res = await api.post(`/tramite/${tramiteId}/gestionar`, { accion });
+        const res = await api.post(`/tramite/${tramiteId}/gestionar`, {
+          accion,
+          motivo,
+        });
         return res?.status === 200;
       } catch {
         return false;
@@ -89,6 +94,21 @@ export const useTramiteStore = defineStore("tramite-store", {
     async cancelarTramite(tramiteId: string): Promise<boolean> {
       try {
         const res = await api.post(`/tramite/${tramiteId}/cancelar`);
+        return res?.status === 200;
+      } catch {
+        return false;
+      }
+    },
+    async enviarCorreoRegistrador(
+      tramiteId: string,
+      asunto: string,
+      cuerpo: string,
+    ): Promise<boolean> {
+      try {
+        const res = await api.post(`/tramite/${tramiteId}/correo-registrador`, {
+          asunto,
+          cuerpo,
+        });
         return res?.status === 200;
       } catch {
         return false;

@@ -16,6 +16,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -27,6 +29,15 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -35,7 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, Loader2, Users } from "lucide-vue-next";
+import { Download, Loader2, Mail, Users } from "lucide-vue-next";
 import * as XLSX from "xlsx";
 import { filtrosStore } from "@/stores/filtros.store";
 import { mapState } from "pinia";
@@ -52,6 +63,7 @@ interface UsuarioListado {
   oficina: string | null;
   municipio: string;
   provincia: string;
+  activo: boolean;
 }
 
 interface UsuariosResponse {
@@ -75,6 +87,8 @@ export default {
     TableHeader,
     TableRow,
     Button,
+    Input,
+    Label,
     Pagination,
     PaginationContent,
     PaginationEllipsis,
@@ -83,6 +97,13 @@ export default {
     PaginationLast,
     PaginationNext,
     PaginationPrevious,
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
     Select,
     SelectContent,
     SelectGroup,
@@ -96,16 +117,26 @@ export default {
     MunicipioFiltro,
     OficinaFiltro,
     Download,
+    Mail,
   },
   data() {
     return {
       usuarios: [] as UsuarioListado[],
       cargando: false,
+      enviandoCorreo: false,
+      actualizandoEstado: null as string | null,
       page: 1,
       limit: 10,
       total: 0,
       limitOptions: [5, 10, 20, 30],
       filtrosKey: 0,
+      dialogCorreoAbierto: false,
+      correoUsuario: null as UsuarioListado | null,
+      correoAsunto: "",
+      correoCuerpo: "",
+      dialogDesactivarAbierto: false,
+      desactivarUsuario: null as UsuarioListado | null,
+      motivoDesactivacion: "",
     };
   },
   computed: {
@@ -193,6 +224,73 @@ export default {
         `usuarios_${new Date().toISOString().split("T")[0]}.xlsx`,
       );
     },
+    abrirCorreo(usuario: UsuarioListado) {
+      this.correoUsuario = usuario;
+      this.correoAsunto = "";
+      this.correoCuerpo = "";
+      this.dialogCorreoAbierto = true;
+    },
+    async enviarCorreo() {
+      if (!this.correoUsuario || this.enviandoCorreo) return;
+      const asunto = this.correoAsunto.trim();
+      const cuerpo = this.correoCuerpo.trim();
+      if (!asunto || !cuerpo) return;
+
+      this.enviandoCorreo = true;
+      try {
+        const res = await api.post("/usuarios/correo", {
+          usuario_id: this.correoUsuario.id,
+          asunto,
+          cuerpo,
+        });
+        if (res?.status === 200) {
+          this.dialogCorreoAbierto = false;
+        }
+      } finally {
+        this.enviandoCorreo = false;
+      }
+    },
+    abrirDialogDesactivar(usuario: UsuarioListado) {
+      this.desactivarUsuario = usuario;
+      this.motivoDesactivacion = "";
+      this.dialogDesactivarAbierto = true;
+    },
+    async activarUsuario(usuario: UsuarioListado) {
+      if (this.actualizandoEstado) return;
+      this.actualizandoEstado = usuario.id;
+      try {
+        const res = await api.post("/usuarios/estado", {
+          usuario_id: usuario.id,
+          activo: true,
+        });
+        if (res?.status === 200) {
+          usuario.activo = true;
+        }
+      } finally {
+        this.actualizandoEstado = null;
+      }
+    },
+    async confirmarDesactivar() {
+      if (!this.desactivarUsuario || this.actualizandoEstado) return;
+      const motivo = this.motivoDesactivacion.trim();
+      if (!motivo) return;
+
+      this.actualizandoEstado = this.desactivarUsuario.id;
+      try {
+        const res = await api.post("/usuarios/estado", {
+          usuario_id: this.desactivarUsuario.id,
+          activo: false,
+          motivo,
+        });
+        if (res?.status === 200) {
+          this.desactivarUsuario.activo = false;
+          this.dialogDesactivarAbierto = false;
+          this.desactivarUsuario = null;
+        }
+      } finally {
+        this.actualizandoEstado = null;
+      }
+    },
   },
   watch: {
     provincia_id() {
@@ -256,16 +354,18 @@ export default {
               <TableHead>Oficina</TableHead>
               <TableHead>Municipio</TableHead>
               <TableHead>Provincia</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead class="text-right">Correo</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-if="cargando">
-              <TableCell colspan="6" class="text-center">
+              <TableCell colspan="8" class="text-center">
                 <Loader2 class="inline-block size-5 animate-spin text-muted-foreground" />
               </TableCell>
             </TableRow>
             <TableRow v-else-if="usuarios.length === 0">
-              <TableCell colspan="6" class="text-center text-muted-foreground">
+              <TableCell colspan="8" class="text-center text-muted-foreground">
                 No hay usuarios registrados.
               </TableCell>
             </TableRow>
@@ -278,6 +378,31 @@ export default {
               <TableCell>{{ usuario.oficina ?? "-" }}</TableCell>
               <TableCell>{{ usuario.municipio }}</TableCell>
               <TableCell>{{ usuario.provincia }}</TableCell>
+              <TableCell>
+                <Button
+                  size="sm"
+                  :variant="usuario.activo ? 'destructive' : 'default'"
+                  :disabled="actualizandoEstado === usuario.id"
+                  @click="usuario.activo ? abrirDialogDesactivar(usuario) : activarUsuario(usuario)"
+                  :title="usuario.activo ? 'Desactivar usuario' : 'Activar usuario'"
+                >
+                  <Loader2
+                    v-if="actualizandoEstado === usuario.id"
+                    class="mr-2 size-4 animate-spin"
+                  />
+                  {{ usuario.activo ? "Desactivar" : "Activar" }}
+                </Button>
+              </TableCell>
+              <TableCell class="text-right">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  class="text-muted-foreground hover:text-foreground"
+                  @click="abrirCorreo(usuario)"
+                >
+                  <Mail class="size-4" />
+                </Button>
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -343,4 +468,86 @@ export default {
       </div>
     </CardContent>
   </Card>
+
+  <Dialog v-model:open="dialogCorreoAbierto">
+    <DialogContent class="max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Enviar correo</DialogTitle>
+        <DialogDescription>
+          Escribe el asunto y el cuerpo del mensaje para
+          {{ correoUsuario?.nombre }} {{ correoUsuario?.apellido }}.
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-4">
+        <div class="space-y-2">
+          <Label for="correo-asunto">Asunto</Label>
+          <Input
+            id="correo-asunto"
+            v-model="correoAsunto"
+            placeholder="Ej. Actualización de cuenta"
+          />
+        </div>
+        <div class="space-y-2">
+          <Label for="correo-cuerpo">Cuerpo</Label>
+          <textarea
+            id="correo-cuerpo"
+            v-model="correoCuerpo"
+            class="flex min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+            rows="6"
+            placeholder="Escribe el contenido del correo"
+          ></textarea>
+        </div>
+      </div>
+      <DialogFooter class="gap-2">
+        <DialogClose as-child>
+          <Button variant="outline" :disabled="enviandoCorreo">Cancelar</Button>
+        </DialogClose>
+        <Button
+          class="gap-2"
+          :disabled="enviandoCorreo || !correoAsunto.trim() || !correoCuerpo.trim()"
+          @click="enviarCorreo"
+        >
+          <Loader2 v-if="enviandoCorreo" class="size-4 animate-spin" />
+          Enviar
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <Dialog v-model:open="dialogDesactivarAbierto">
+    <DialogContent class="max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Desactivar usuario</DialogTitle>
+        <DialogDescription>
+          Indica la causa de la desactivación para notificar al usuario.
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-2">
+        <Label for="motivo-desactivacion">Causa</Label>
+        <textarea
+          id="motivo-desactivacion"
+          v-model="motivoDesactivacion"
+          class="flex min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+          rows="5"
+          placeholder="Explica la causa de la desactivación"
+        ></textarea>
+      </div>
+      <DialogFooter class="gap-2">
+        <DialogClose as-child>
+          <Button variant="outline" :disabled="actualizandoEstado !== null">Cancelar</Button>
+        </DialogClose>
+        <Button
+          variant="destructive"
+          class="gap-2"
+          :disabled="
+            actualizandoEstado !== null || !motivoDesactivacion.trim()
+          "
+          @click="confirmarDesactivar"
+        >
+          <Loader2 v-if="actualizandoEstado !== null" class="size-4 animate-spin" />
+          Desactivar cuenta
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>

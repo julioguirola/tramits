@@ -74,6 +74,7 @@ pub struct UsuarioListado {
     pub oficina: Option<String>,
     pub municipio: String,
     pub provincia: String,
+    pub activo: bool,
 }
 
 pub async fn get_usuario_actual(
@@ -148,7 +149,7 @@ pub async fn login_usuario(
         "select u.id, u.pass_word, ur.nombre as rol 
          from usuario u 
          join usuario_rol ur on ur.id = u.rol_id 
-         where u.email = $1;",
+         where u.email = $1 and u.activo = true;",
     )
     .bind(email)
     .fetch_one(db)
@@ -195,6 +196,7 @@ pub async fn listar_usuarios(
 ) -> Result<Vec<UsuarioListado>, Error> {
     let mut query = String::from(
         "select u.id, u.email, p.nombre, p.apellido, ur.nombre as rol,
+                u.activo,
                 case when u.oficina_id is not null then o_reg.nombre else o_pers.nombre end as oficina,
                 case when u.oficina_id is not null then m_reg.nombre else m_pers.nombre end as municipio,
                 case when u.oficina_id is not null then pr_reg.nombre else pr_pers.nombre end as provincia
@@ -313,4 +315,17 @@ pub async fn contar_usuarios(
         .fetch_one(db)
         .await?;
     Ok(count.0)
+}
+
+pub async fn actualizar_estado_usuario(
+    db: &Pool<Postgres>,
+    usuario_id: &Uuid,
+    activo: bool,
+) -> Result<u64, Error> {
+    let result = sqlx::query("update usuario set activo = $1 where id = $2;")
+        .bind(activo)
+        .bind(usuario_id)
+        .execute(db)
+        .await?;
+    Ok(result.rows_affected())
 }

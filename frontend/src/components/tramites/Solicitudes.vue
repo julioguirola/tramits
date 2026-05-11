@@ -18,6 +18,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ClipboardList, Loader2, PlayCircle, Download } from "lucide-vue-next";
+import {
+  ClipboardList,
+  Loader2,
+  PlayCircle,
+  Download,
+  Mail,
+} from "lucide-vue-next";
+import { api } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import {
   Pagination,
@@ -63,6 +72,8 @@ export default {
     TableRow,
     Badge,
     Button,
+    Input,
+    Label,
     Dialog,
     DialogContent,
     DialogDescription,
@@ -88,6 +99,7 @@ export default {
     SelectTrigger,
     SelectValue,
     Download,
+    Mail,
   },
   computed: {
     ...mapState(useTramiteStore, [
@@ -134,8 +146,16 @@ export default {
     dialog_gestion_open: boolean;
     selected_tramite_id: string | null;
     loading_gestion: boolean;
+    dialog_rechazo_open: boolean;
+    motivo_rechazo: string;
     dialog_procesar_open: boolean;
     selected_procesar_id: string | null;
+    dialog_correo_open: boolean;
+    enviando_correo: boolean;
+    correo_tramite_id: string | null;
+    correo_destinatario: string;
+    correo_asunto: string;
+    correo_cuerpo: string;
     page_pendientes: number;
     limit_pendientes: number;
     total_pendientes: number;
@@ -149,8 +169,16 @@ export default {
       dialog_gestion_open: false,
       selected_tramite_id: null,
       loading_gestion: false,
+      dialog_rechazo_open: false,
+      motivo_rechazo: "",
       dialog_procesar_open: false,
       selected_procesar_id: null,
+      dialog_correo_open: false,
+      enviando_correo: false,
+      correo_tramite_id: null,
+      correo_destinatario: "",
+      correo_asunto: "",
+      correo_cuerpo: "",
       page_pendientes: 1,
       limit_pendientes: 10,
       total_pendientes: 0,
@@ -283,14 +311,47 @@ export default {
     async gestionar(accion: "completar" | "rechazar") {
       if (!this.selected_tramite_id || this.loading_gestion) return;
       this.loading_gestion = true;
-      const ok = await this.gestionarTramite(this.selected_tramite_id, accion);
+      const motivo = accion === "rechazar" ? this.motivo_rechazo.trim() : undefined;
+      const ok = await this.gestionarTramite(this.selected_tramite_id, accion, motivo);
       if (ok) {
         this.dialog_gestion_open = false;
+        this.dialog_rechazo_open = false;
+        this.motivo_rechazo = "";
         this.selected_tramite_id = null;
         await this.cargarPendientes();
         await this.cargarEnProceso();
       }
       this.loading_gestion = false;
+    },
+    abrirDialogRechazo() {
+      this.motivo_rechazo = "";
+      this.dialog_rechazo_open = true;
+    },
+    abrirDialogCorreo(tramite: any) {
+      this.correo_tramite_id = tramite.id;
+      this.correo_destinatario = this.getNombreCompleto(tramite);
+      this.correo_asunto = "";
+      this.correo_cuerpo = "";
+      this.dialog_correo_open = true;
+    },
+    async enviarCorreo() {
+      if (!this.correo_tramite_id || this.enviando_correo) return;
+      const asunto = this.correo_asunto.trim();
+      const cuerpo = this.correo_cuerpo.trim();
+      if (!asunto || !cuerpo) return;
+
+      this.enviando_correo = true;
+      try {
+        const res = await api.post(`/tramite/${this.correo_tramite_id}/correo`, {
+          asunto,
+          cuerpo,
+        });
+        if (res?.status === 200) {
+          this.dialog_correo_open = false;
+        }
+      } finally {
+        this.enviando_correo = false;
+      }
     },
     getNombreCompleto(tramite: any): string {
       if (tramite.persona_nombre && tramite.persona_apellido) {
@@ -569,6 +630,7 @@ export default {
                       <TableHead>Estado</TableHead>
                       <TableHead>Registrador</TableHead>
                       <TableHead>Acciones</TableHead>
+                      <TableHead class="text-right">Correo</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -597,6 +659,16 @@ export default {
                           @click="abrirDialogGestion(tramite.id)"
                         >
                           Gestionar
+                        </Button>
+                      </TableCell>
+                      <TableCell class="text-right">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          class="text-muted-foreground hover:text-foreground"
+                          @click="abrirDialogCorreo(tramite)"
+                        >
+                          <Mail class="size-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -643,14 +715,24 @@ export default {
                       <span>{{ tramite.registrador || "-" }}</span>
                     </div>
                   </div>
-                  <Button
-                    class="w-full"
-                    size="sm"
-                    variant="outline"
-                    @click="abrirDialogGestion(tramite.id)"
-                  >
-                    Gestionar
-                  </Button>
+                  <div class="flex gap-2">
+                    <Button
+                      class="w-full"
+                      size="sm"
+                      variant="outline"
+                      @click="abrirDialogGestion(tramite.id)"
+                    >
+                      Gestionar
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      class="text-muted-foreground hover:text-foreground"
+                      @click="abrirDialogCorreo(tramite)"
+                    >
+                      <Mail class="size-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
               <div
@@ -736,10 +818,9 @@ export default {
                 <Button
                   variant="destructive"
                   :disabled="loading_gestion"
-                  @click="gestionar('rechazar')"
+                  @click="abrirDialogRechazo"
                 >
-                  <Loader2 v-if="loading_gestion" class="size-4 animate-spin" />
-                  {{ loading_gestion ? "" : "Rechazar" }}
+                  Rechazar
                 </Button>
                 <Button
                   :disabled="loading_gestion"
@@ -747,6 +828,96 @@ export default {
                 >
                   <Loader2 v-if="loading_gestion" class="size-4 animate-spin" />
                   {{ loading_gestion ? "" : "Completar trámite" }}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog v-model:open="dialog_rechazo_open">
+            <DialogContent class="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Rechazar trámite</DialogTitle>
+                <DialogDescription>
+                  Indica la causa del rechazo para notificar al solicitante.
+                </DialogDescription>
+              </DialogHeader>
+              <div class="space-y-2">
+                <Label for="motivo-rechazo">Causa</Label>
+                <textarea
+                  id="motivo-rechazo"
+                  v-model="motivo_rechazo"
+                  class="flex min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  rows="5"
+                  placeholder="Explica la causa del rechazo"
+                ></textarea>
+              </div>
+              <DialogFooter class="gap-2">
+                <Button
+                  variant="outline"
+                  :disabled="loading_gestion"
+                  @click="dialog_rechazo_open = false"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  class="gap-2"
+                  :disabled="loading_gestion || !motivo_rechazo.trim()"
+                  @click="gestionar('rechazar')"
+                >
+                  <Loader2 v-if="loading_gestion" class="size-4 animate-spin" />
+                  Rechazar trámite
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog v-model:open="dialog_correo_open">
+            <DialogContent class="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Enviar correo</DialogTitle>
+                <DialogDescription>
+                  Escribe el asunto y el cuerpo del mensaje para
+                  {{ correo_destinatario }}.
+                </DialogDescription>
+              </DialogHeader>
+              <div class="space-y-4">
+                <div class="space-y-2">
+                  <Label for="correo-asunto">Asunto</Label>
+                  <Input
+                    id="correo-asunto"
+                    v-model="correo_asunto"
+                    placeholder="Ej. Información sobre el trámite"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <Label for="correo-cuerpo">Cuerpo</Label>
+                  <textarea
+                    id="correo-cuerpo"
+                    v-model="correo_cuerpo"
+                    class="flex min-h-32 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] placeholder:text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    rows="6"
+                    placeholder="Escribe el contenido del correo"
+                  ></textarea>
+                </div>
+              </div>
+              <DialogFooter class="gap-2">
+                <Button
+                  variant="outline"
+                  :disabled="enviando_correo"
+                  @click="dialog_correo_open = false"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  class="gap-2"
+                  :disabled="
+                    enviando_correo ||
+                    !correo_asunto.trim() ||
+                    !correo_cuerpo.trim()
+                  "
+                  @click="enviarCorreo"
+                >
+                  <Loader2 v-if="enviando_correo" class="size-4 animate-spin" />
+                  Enviar
                 </Button>
               </DialogFooter>
             </DialogContent>

@@ -86,7 +86,8 @@ create table usuario (
     pass_word text not null,
     persona_id uuid not null references persona(id),
     rol_id int not null default 1 references usuario_rol(id),
-    oficina_id int references oficina(id)
+    oficina_id int references oficina(id),
+    activo bool not null default true
 );
 
 
