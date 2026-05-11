@@ -46,7 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, Loader2, Mail, Users } from "lucide-vue-next";
+import { Download, Loader2, Mail, Users, UserCog } from "lucide-vue-next";
 import * as XLSX from "xlsx";
 import { filtrosStore } from "@/stores/filtros.store";
 import { mapState } from "pinia";
@@ -61,10 +61,12 @@ interface UsuarioListado {
   apellido: string;
   rol: string;
   oficina: string | null;
+  oficina_id: number | null;
   municipio: string;
   provincia: string;
   activo: boolean;
 }
+
 
 interface UsuariosResponse {
   usuarios: UsuarioListado[];
@@ -118,6 +120,7 @@ export default {
     OficinaFiltro,
     Download,
     Mail,
+    UserCog,
   },
   data() {
     return {
@@ -137,6 +140,9 @@ export default {
       dialogDesactivarAbierto: false,
       desactivarUsuario: null as UsuarioListado | null,
       motivoDesactivacion: "",
+      dialogRolAbierto: false,
+      rolUsuario: null as UsuarioListado | null,
+      actualizandoRol: false,
     };
   },
   computed: {
@@ -291,6 +297,44 @@ export default {
         this.actualizandoEstado = null;
       }
     },
+    abrirDialogRol(usuario: UsuarioListado) {
+      const filtros = filtrosStore();
+      this.rolUsuario = usuario;
+      filtros.$patch({
+        provincia_id: null,
+        municipio_id: null,
+        oficina_id: null,
+        municipios: [],
+        oficinas: [],
+        bodegas: [],
+      });
+      this.dialogRolAbierto = true;
+    },
+    async actualizarRol() {
+      if (!this.rolUsuario || this.actualizandoRol) return;
+      this.actualizandoRol = true;
+      const oficinaId = this.rolUsuario.rol === "Consumidor" ? this.oficina_id ?? null : null;
+      if (this.rolUsuario.rol === "Consumidor" && !oficinaId) {
+        this.actualizandoRol = false;
+        return;
+      }
+      try {
+        const res = await api.post("/usuarios/rol", {
+          usuario_id: this.rolUsuario.id,
+          oficina_id: oficinaId,
+        });
+        if (res?.status === 200) {
+          this.rolUsuario.oficina_id = oficinaId;
+          this.rolUsuario.rol = oficinaId ? "Registrador" : "Consumidor";
+          if (!oficinaId) {
+            this.rolUsuario.oficina = null;
+          }
+          this.dialogRolAbierto = false;
+        }
+      } finally {
+        this.actualizandoRol = false;
+      }
+    },
   },
   watch: {
     provincia_id() {
@@ -355,7 +399,7 @@ export default {
               <TableHead>Municipio</TableHead>
               <TableHead>Provincia</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead class="text-right">Correo</TableHead>
+              <TableHead class="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -394,14 +438,26 @@ export default {
                 </Button>
               </TableCell>
               <TableCell class="text-right">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  class="text-muted-foreground hover:text-foreground"
-                  @click="abrirCorreo(usuario)"
-                >
-                  <Mail class="size-4" />
-                </Button>
+                <div class="flex justify-end gap-2">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    class="text-muted-foreground hover:text-foreground"
+                    @click="abrirDialogRol(usuario)"
+                    title="Modificar rol"
+                  >
+                    <UserCog class="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    class="text-muted-foreground hover:text-foreground"
+                    @click="abrirCorreo(usuario)"
+                    title="Enviar correo"
+                  >
+                    <Mail class="size-4" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -546,6 +602,54 @@ export default {
         >
           <Loader2 v-if="actualizandoEstado !== null" class="size-4 animate-spin" />
           Desactivar cuenta
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <Dialog v-model:open="dialogRolAbierto">
+    <DialogContent class="max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Modificar rol</DialogTitle>
+        <DialogDescription>
+          Gestiona el rol del usuario seleccionado.
+        </DialogDescription>
+      </DialogHeader>
+      <div v-if="rolUsuario?.rol === 'Registrador'" class="space-y-3">
+        <p class="text-sm text-muted-foreground">
+          Este usuario ya es registrador. ¿Deseas pasarlo a consumidor?
+        </p>
+      </div>
+      <div v-else class="space-y-2">
+        <Label for="rol-oficina">Oficina</Label>
+        <div class="flex flex-wrap gap-3">
+          <ProvinciaFiltro />
+          <MunicipioFiltro />
+          <OficinaFiltro />
+        </div>
+        <div class="text-xs text-muted-foreground">
+          Selecciona una provincia, municipio y oficina para asignarlo como
+          registrador.
+        </div>
+      </div>
+      <DialogFooter class="gap-2">
+        <Button
+          variant="outline"
+          :disabled="actualizandoRol"
+          @click="dialogRolAbierto = false"
+        >
+          Cancelar
+        </Button>
+        <Button
+          class="gap-2"
+          :disabled="
+            actualizandoRol ||
+            (rolUsuario?.rol === 'Consumidor' && !oficina_id)
+          "
+          @click="actualizarRol"
+        >
+          <Loader2 v-if="actualizandoRol" class="size-4 animate-spin" />
+          Cambiar rol
         </Button>
       </DialogFooter>
     </DialogContent>

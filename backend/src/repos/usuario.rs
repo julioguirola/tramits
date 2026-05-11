@@ -72,6 +72,7 @@ pub struct UsuarioListado {
     pub apellido: String,
     pub rol: String,
     pub oficina: Option<String>,
+    pub oficina_id: Option<i32>,
     pub municipio: String,
     pub provincia: String,
     pub activo: bool,
@@ -198,6 +199,7 @@ pub async fn listar_usuarios(
         "select u.id, u.email, p.nombre, p.apellido, ur.nombre as rol,
                 u.activo,
                 case when u.oficina_id is not null then o_reg.nombre else o_pers.nombre end as oficina,
+                u.oficina_id,
                 case when u.oficina_id is not null then m_reg.nombre else m_pers.nombre end as municipio,
                 case when u.oficina_id is not null then pr_reg.nombre else pr_pers.nombre end as provincia
          from usuario u
@@ -324,6 +326,21 @@ pub async fn actualizar_estado_usuario(
 ) -> Result<u64, Error> {
     let result = sqlx::query("update usuario set activo = $1 where id = $2;")
         .bind(activo)
+        .bind(usuario_id)
+        .execute(db)
+        .await?;
+    Ok(result.rows_affected())
+}
+
+pub async fn actualizar_rol_usuario(
+    db: &Pool<Postgres>,
+    usuario_id: &Uuid,
+    oficina_id: Option<i32>,
+    rol_id: i32,
+) -> Result<u64, Error> {
+    let result = sqlx::query("update usuario set oficina_id = $1, rol_id = $2 where id = $3;")
+        .bind(oficina_id)
+        .bind(rol_id)
         .bind(usuario_id)
         .execute(db)
         .await?;

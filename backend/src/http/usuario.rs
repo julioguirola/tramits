@@ -3,7 +3,7 @@ use crate::{
     mail::{EmailType, send_email},
     repos::usuario::{
         self, UsuarioInfo, UsuarioJwt, actualizar_estado_usuario, contar_usuarios,
-        get_usuario_actual, jwt, listar_usuarios, login_usuario,
+        get_usuario_actual, jwt, listar_usuarios, login_usuario, actualizar_rol_usuario,
     },
     tipos::{Respuesta, Ress},
 };
@@ -55,6 +55,12 @@ pub struct ActualizarEstadoUsuarioDto {
     usuario_id: String,
     activo: bool,
     motivo: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct ActualizarRolUsuarioDto {
+    usuario_id: String,
+    oficina_id: Option<i32>,
 }
 
 fn is_valid_email(email: &str) -> bool {
@@ -698,6 +704,159 @@ pub async fn actualizar_estado_usuario_h(
                 Js(json!(Ress::<u8> {
                     message: Respuesta::Error.as_str(),
                     description: "Error actualizando estado del usuario",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+pub async fn actualizar_rol_usuario_h(
+    State(state): State<Arc<AppState>>,
+    Extension(usr): Extension<UsuarioJwt>,
+    Json(body): Json<ActualizarRolUsuarioDto>,
+) -> Response {
+    if usr.rol != "Administrador" {
+        return (
+            StatusCode::FORBIDDEN,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "No autorizado",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let usuario_id = match Uuid::parse_str(body.usuario_id.trim()) {
+        Ok(id) => id,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Usuario inválido",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    if usuario_id == usr.sub {
+        return (
+            StatusCode::BAD_REQUEST,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Warn.as_str(),
+                description: "No puedes cambiar tu propio rol",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let rol_id = match body.oficina_id {
+        Some(_) => 2,
+        None => 1,
+    };
+
+    if rol_id == 2 {
+        let tiene_activos: i64 = match sqlx::query_scalar(
+            "select count(*)
+             from tramite t
+             join persona p on p.id = t.persona_id
+             where p.id = (select persona_id from usuario where id = $1)
+               and t.estado_id in (1, 2);",
+        )
+        .bind(usuario_id)
+        .fetch_one(&state.db)
+        .await
+        {
+            Ok(count) => count,
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Js(json!(Ress::<u8> {
+                        message: Respuesta::Error.as_str(),
+                        description: "Error validando trámites activos",
+                        data: None
+                    })),
+                )
+                    .into_response();
+            }
+        };
+        if tiene_activos > 0 {
+            return (
+                StatusCode::CONFLICT,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Warn.as_str(),
+                    description: "El usuario tiene trámites pendientes o en proceso",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    } else {
+        let tiene_en_proceso: i64 = match sqlx::query_scalar(
+            "select count(*) from tramite where registrador_id = $1 and estado_id = 2;",
+        )
+        .bind(usuario_id)
+        .fetch_one(&state.db)
+        .await
+        {
+            Ok(count) => count,
+            Err(_) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Js(json!(Ress::<u8> {
+                        message: Respuesta::Error.as_str(),
+                        description: "Error validando trámites en proceso",
+                        data: None
+                    })),
+                )
+                    .into_response();
+            }
+        };
+        if tiene_en_proceso > 0 {
+            return (
+                StatusCode::CONFLICT,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Warn.as_str(),
+                    description: "El registrador tiene trámites en proceso",
+                    data: None
+                })),
+            )
+                .into_response();
+        }
+    }
+
+    match actualizar_rol_usuario(&state.db, &usuario_id, body.oficina_id, rol_id).await {
+        Ok(affected) if affected > 0 => (
+            StatusCode::OK,
+            Js(json!(Ress::<()> {
+                message: Respuesta::Success.as_str(),
+                description: "Rol del usuario actualizado",
+                data: None
+            })),
+        )
+            .into_response(),
+        Ok(_) => (
+            StatusCode::NOT_FOUND,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "Usuario no encontrado",
+                data: None
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("Error actualizando rol de usuario: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Error actualizando rol del usuario",
                     data: None
                 })),
             )

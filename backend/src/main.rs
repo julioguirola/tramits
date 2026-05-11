@@ -99,6 +99,7 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/nucleo", get(nucleo::get_nucleos_h))
         .route("/usuarios", get(usuario::listar_usuarios_h))
         .route("/usuarios/estado", post(usuario::actualizar_estado_usuario_h))
+        .route("/usuarios/rol", post(usuario::actualizar_rol_usuario_h))
         .route("/usuarios/correo", post(usuario::enviar_correo_usuario_h))
         .layer(middleware::from_fn_with_state(shared_state.clone(), auth_m));
 

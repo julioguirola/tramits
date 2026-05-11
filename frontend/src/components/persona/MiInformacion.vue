@@ -8,7 +8,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Home, Store, Building2, MapPin, Map, Mail, Loader2 } from "lucide-vue-next";
+import {
+  Home,
+  Store,
+  Building2,
+  MapPin,
+  Map,
+  Mail,
+  Loader2,
+} from "lucide-vue-next";
 import HistorialTramites from "@/components/tramites/HistorialTramites.vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +49,7 @@ export default {
     DialogTitle,
     HistorialTramites,
     Mail,
+    Loader2,
   },
   data() {
     return {
@@ -248,7 +257,9 @@ export default {
         </Button>
         <Button
           class="gap-2"
-          :disabled="enviandoCorreo || !correoAsunto.trim() || !correoCuerpo.trim()"
+          :disabled="
+            enviandoCorreo || !correoAsunto.trim() || !correoCuerpo.trim()
+          "
           @click="enviarCorreo"
         >
           <Loader2 v-if="enviandoCorreo" class="size-4 animate-spin" />
