@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import Login from "../Login.vue";
 import Register from "@/Register.vue";
+import RecoveryForm from "@/components/auth/RecoveryForm.vue";
 import Dashboard from "@/Dashboard.vue";
 import Bienvenida from "@/components/dashboard/Bienvenida.vue";
 import UsuariosAdmin from "@/components/admin/UsuariosAdmin.vue";
@@ -37,6 +38,12 @@ const router = createRouter({
     {
       path: "/register",
       component: Register,
+      beforeEnter: guestOnly,
+    },
+    {
+      path: "/recovery/:uuid",
+      component: RecoveryForm,
+      props: true,
       beforeEnter: guestOnly,
     },
     {

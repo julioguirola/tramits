@@ -14,7 +14,7 @@ mod mail;
 mod middlewares;
 mod repos;
 mod tipos;
-use crate::http::{bodega, municipio, nucleo, oficina, persona, provincia, tramite, usuario};
+use crate::http::{bodega, municipio, nucleo, oficina, password_recovery, persona, provincia, tramite, usuario};
 use crate::middlewares::{auth::auth_m, cors::cors_m, logger::logger_m};
 use config::EnvConfig;
 use redis::cmd;
@@ -98,6 +98,7 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/bodega", get(bodega::get_bodegas_h))
         .route("/nucleo", get(nucleo::get_nucleos_h))
         .route("/usuarios", get(usuario::listar_usuarios_h))
+        .route("/usuarios/sin-nucleo", get(usuario::listar_usuarios_sin_nucleo_h))
         .route("/usuarios/estado", post(usuario::actualizar_estado_usuario_h))
         .route("/usuarios/rol", post(usuario::actualizar_rol_usuario_h))
         .route("/usuarios/correo", post(usuario::enviar_correo_usuario_h))
@@ -109,6 +110,14 @@ async fn main() -> Result<(), sqlx::Error> {
         .route("/persona", get(persona::get_personas_h))
         .route("/usuario", post(usuario::crear_usuario_h))
         .route("/login", post(usuario::login_usuario_h))
+        .route(
+            "/password-recovery/solicitar",
+            post(password_recovery::solicitar_h),
+        )
+        .route(
+            "/password-recovery/restablecer/{uuid}",
+            post(password_recovery::restablecer_h),
+        )
         .merge(routes_auth)
         .route("/{*path}", any(|| async { StatusCode::NO_CONTENT }))
         .layer(middleware::from_fn_with_state(shared_state.clone(), cors_m))

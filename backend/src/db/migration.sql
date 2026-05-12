@@ -1,4 +1,5 @@
 drop table if exists tramite;
+drop table if exists password_recovery;
 drop table if exists usuario;
 drop table if exists tramite_estado;
 drop table if exists tramite_tipo;
@@ -90,6 +91,13 @@ create table usuario (
     activo bool not null default true
 );
 
+
+create table password_recovery (
+    id uuid default gen_random_uuid() primary key,
+    usuario_id uuid not null references usuario(id),
+    expira_en timestamp not null default now() + interval '1 hour',
+    usado bool not null default false
+);
 
 create table tramite (
     id uuid default gen_random_uuid() primary key,

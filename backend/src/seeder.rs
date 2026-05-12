@@ -9,6 +9,7 @@ use fake::Fake;
 use fake::faker::address::en::{CityName, StreetName, StreetSuffix};
 use fake::faker::name::en::{FirstName, LastName};
 use sqlx::{Pool, Postgres, Row};
+use std::collections::HashMap;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
@@ -25,15 +26,11 @@ async fn generar_oficinas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let mut inserts = String::from("");
 
     for id in ids_municipios {
-        let cant_oficinas = rand::random_range::<u8, _>(1..=3);
-
-        for _ in 0..cant_oficinas {
-            inserts += &format!(
-                "insert into oficina (nombre, municipio_id) values ('{}', {});\n",
-                (CityName().fake::<String>() + " Ofic").replace("'", " "),
-                id,
-            );
-        }
+        inserts += &format!(
+            "insert into oficina (nombre, municipio_id) values ('{}', {});\n",
+            (CityName().fake::<String>() + " Ofic").replace("'", " "),
+            id,
+        );
     }
 
     let result = sqlx::raw_sql(&inserts).execute(pool).await?;
@@ -53,15 +50,11 @@ async fn generar_bodegas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     let mut inserts = String::from("");
 
     for id in ids_ofics {
-        let cant_bodegas = rand::random_range::<u8, _>(1..=10);
-
-        for _ in 0..cant_bodegas {
-            inserts += &format!(
-                "insert into bodega (nombre, oficina_id) values ('{}', {});\n",
-                (CityName().fake::<String>() + " Bodega").replace("'", " "),
-                id,
-            );
-        }
+        inserts += &format!(
+            "insert into bodega (nombre, oficina_id) values ('{}', {});\n",
+            (CityName().fake::<String>() + " Bodega").replace("'", " "),
+            id,
+        );
     }
 
     let result = sqlx::raw_sql(&inserts).execute(pool).await?;
@@ -115,7 +108,7 @@ async fn generar_personas(pool: &Pool<Postgres>) -> Result<(), sqlx::Error> {
     for row in &result_nuc {
         let nuc_id: i32 = row.get("id");
         let mun_id: i32 = row.get("municipio_id");
-        let cant_personas = rand::random_range::<u16, _>(1..=10);
+        let cant_personas = rand::random_range::<u16, _>(1..=3);
 
         for _ in 0..cant_personas {
             inserts += &format!(
@@ -214,7 +207,7 @@ async fn crear_registradores_por_oficina(
     pool: &Pool<Postgres>,
     config: &EnvConfig,
 ) -> Result<(), sqlx::Error> {
-    let oficinas = sqlx::query("select id from oficina;")
+    let oficinas = sqlx::query("select id from oficina where id > 1;")
         .fetch_all(pool)
         .await?;
 
@@ -228,20 +221,19 @@ async fn crear_registradores_por_oficina(
     .fetch_all(pool)
     .await?;
 
+    let persona_map: HashMap<i32, sqlx::types::Uuid> = personas
+        .iter()
+        .map(|r| (r.get("oficina_id"), r.get("id")))
+        .collect();
+
+    let pass_hash = hashear(&config.registrar_password).await?;
+
     let mut inserts = String::new();
     for row in oficinas {
         let oficina_id: i32 = row.get("id");
-        if oficina_id == 1 {
-            continue;
-        }
 
-        let persona_row = personas
-            .iter()
-            .find(|r| r.get::<i32, _>("oficina_id") == oficina_id)
-            .ok_or(sqlx::Error::RowNotFound)?;
-        let persona_id: sqlx::types::Uuid = persona_row.get("id");
-        let email = format!("registrador{}@seed.local", oficina_id).replace("'", " ");
-        let pass_hash = hashear(&config.registrar_password).await?.replace("'", " ");
+        let persona_id = persona_map.get(&oficina_id).ok_or(sqlx::Error::RowNotFound)?;
+        let email = format!("registrador{}@seed.local", oficina_id);
 
         inserts += &format!(
             "insert into usuario (email, pass_word, persona_id, rol_id, oficina_id) values ('{}', '{}', '{}', 2, {});\n",
@@ -252,6 +244,50 @@ async fn crear_registradores_por_oficina(
     if !inserts.is_empty() {
         sqlx::raw_sql(&inserts).execute(pool).await?;
     }
+
+    Ok(())
+}
+
+async fn crear_usuarios_faltantes(pool: &Pool<Postgres>, config: &EnvConfig) -> Result<(), sqlx::Error> {
+    let personas = sqlx::query(
+        "select p.id, p.nombre, p.apellido
+         from persona p
+         left join usuario u on u.persona_id = p.id
+         where u.id is null;",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    if personas.is_empty() {
+        info!("No hay personas sin usuario");
+        return Ok(());
+    }
+
+    let pass_hash = hashear(&config.consumer_password).await?;
+
+    let mut inserts = String::new();
+    let mut count = 0u64;
+    for row in &personas {
+        let persona_id: sqlx::types::Uuid = row.get("id");
+        let nombre: String = row.get("nombre");
+        let apellido: String = row.get("apellido");
+        let random_suffix: u32 = rand::random_range::<u32, _>(100..999);
+        let email = format!(
+            "{}.{}{}@seed.local",
+            nombre.to_lowercase().replace(' ', "."),
+            apellido.to_lowercase().replace(' ', "."),
+            random_suffix,
+        );
+
+        inserts += &format!(
+            "insert into usuario (email, pass_word, persona_id, rol_id) values ('{}', '{}', '{}', 1);\n",
+            email, pass_hash, persona_id
+        );
+        count += 1;
+    }
+
+    sqlx::raw_sql(&inserts).execute(pool).await?;
+    info!("Usuarios creados para personas sin usuario: {}", count);
 
     Ok(())
 }
@@ -369,6 +405,13 @@ async fn main() -> Result<(), sqlx::Error> {
         .await
         .map_err(|e| {
             tracing::error!("Error creando registradores por oficina: {}", e);
+            e
+        })?;
+    info!("Creando usuarios faltantes");
+    crear_usuarios_faltantes(&pool, &config)
+        .await
+        .map_err(|e| {
+            tracing::error!("Error creando usuarios faltantes: {}", e);
             e
         })?;
     info!("Generando tramites");

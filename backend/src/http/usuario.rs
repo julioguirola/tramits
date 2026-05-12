@@ -4,6 +4,7 @@ use crate::{
     repos::usuario::{
         self, UsuarioInfo, UsuarioJwt, actualizar_estado_usuario, contar_usuarios,
         get_usuario_actual, jwt, listar_usuarios, login_usuario, actualizar_rol_usuario,
+        listar_usuarios_sin_nucleo, contar_usuarios_sin_nucleo,
     },
     tipos::{Respuesta, Ress},
 };
@@ -435,6 +436,66 @@ pub async fn listar_usuarios_h(
                 Js(json!(Ress::<u8> {
                     message: Respuesta::Error.as_str(),
                     description: "Error obteniendo usuarios",
+                    data: None
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct UsuariosSinNucleoQuery {
+    pub page: Option<i64>,
+    pub limit: Option<i64>,
+}
+
+pub async fn listar_usuarios_sin_nucleo_h(
+    State(state): State<Arc<AppState>>,
+    Extension(usr): Extension<UsuarioJwt>,
+    Query(params): Query<UsuariosSinNucleoQuery>,
+) -> Response {
+    if usr.rol != "Administrador" {
+        return (
+            StatusCode::FORBIDDEN,
+            Js(json!(Ress::<u8> {
+                message: Respuesta::Error.as_str(),
+                description: "No autorizado",
+                data: None
+            })),
+        )
+            .into_response();
+    }
+
+    let page = params.page.unwrap_or(1).max(1);
+    let limit = params.limit.unwrap_or(10).clamp(1, 100);
+    let offset = (page - 1) * limit;
+
+    let total = contar_usuarios_sin_nucleo(&state.db).await.unwrap_or(0);
+    let result = listar_usuarios_sin_nucleo(&state.db, limit, offset).await;
+
+    match result {
+        Ok(usuarios) => (
+            StatusCode::OK,
+            Js(json!(Ress::<PaginatedResponse<_>> {
+                message: Respuesta::Success.as_str(),
+                description: "Usuarios obtenidos",
+                data: Some(PaginatedResponse {
+                    usuarios,
+                    total,
+                    page: page as usize,
+                    limit: limit as usize,
+                })
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("{}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Js(json!(Ress::<u8> {
+                    message: Respuesta::Error.as_str(),
+                    description: "Error obteniendo usuarios sin núcleo",
                     data: None
                 })),
             )

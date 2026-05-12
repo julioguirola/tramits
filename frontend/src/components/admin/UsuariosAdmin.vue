@@ -53,6 +53,7 @@ import { mapState } from "pinia";
 import ProvinciaFiltro from "@/components/filtros/ProvinciaFiltro.vue";
 import MunicipioFiltro from "@/components/filtros/MunicipioFiltro.vue";
 import OficinaFiltro from "@/components/filtros/OficinaFiltro.vue";
+import SelectorOficina from "@/components/admin/SelectorOficina.vue";
 
 interface UsuarioListado {
   id: string;
@@ -121,6 +122,7 @@ export default {
     Download,
     Mail,
     UserCog,
+    SelectorOficina,
   },
   data() {
     return {
@@ -143,6 +145,12 @@ export default {
       dialogRolAbierto: false,
       rolUsuario: null as UsuarioListado | null,
       actualizandoRol: false,
+      rolOficinaId: undefined as number | undefined,
+      usuariosSinNucleo: [] as UsuarioListado[],
+      cargandoSinNucleo: false,
+      pageSinNucleo: 1,
+      limitSinNucleo: 10,
+      totalSinNucleo: 0,
     };
   },
   computed: {
@@ -161,6 +169,18 @@ export default {
     },
     tieneUsuarios(): boolean {
       return this.usuarios.length > 0;
+    },
+    totalPagesSinNucleo(): number {
+      return Math.max(1, Math.ceil(this.totalSinNucleo / this.limitSinNucleo));
+    },
+    mostrandoSinNucleo(): string {
+      if (this.totalSinNucleo === 0) return "0";
+      const start = (this.pageSinNucleo - 1) * this.limitSinNucleo + 1;
+      const end = Math.min(this.pageSinNucleo * this.limitSinNucleo, this.totalSinNucleo);
+      return `${start}-${end}`;
+    },
+    tieneSinNucleo(): boolean {
+      return this.usuariosSinNucleo.length > 0;
     },
   },
   methods: {
@@ -298,22 +318,14 @@ export default {
       }
     },
     abrirDialogRol(usuario: UsuarioListado) {
-      const filtros = filtrosStore();
       this.rolUsuario = usuario;
-      filtros.$patch({
-        provincia_id: null,
-        municipio_id: null,
-        oficina_id: null,
-        municipios: [],
-        oficinas: [],
-        bodegas: [],
-      });
+      this.rolOficinaId = undefined;
       this.dialogRolAbierto = true;
     },
     async actualizarRol() {
       if (!this.rolUsuario || this.actualizandoRol) return;
       this.actualizandoRol = true;
-      const oficinaId = this.rolUsuario.rol === "Consumidor" ? this.oficina_id ?? null : null;
+      const oficinaId = this.rolUsuario.rol === "Consumidor" ? this.rolOficinaId ?? null : null;
       if (this.rolUsuario.rol === "Consumidor" && !oficinaId) {
         this.actualizandoRol = false;
         return;
@@ -335,6 +347,37 @@ export default {
         this.actualizandoRol = false;
       }
     },
+    async cargarUsuariosSinNucleo() {
+      this.cargandoSinNucleo = true;
+      try {
+        const res = await api.get("/usuarios/sin-nucleo", {
+          params: {
+            page: this.pageSinNucleo,
+            limit: this.limitSinNucleo,
+          },
+        });
+        if (res?.status === 200 && res.data?.data) {
+          const data = res.data.data as UsuariosResponse;
+          this.usuariosSinNucleo = data.usuarios || [];
+          this.totalSinNucleo = data.total ?? 0;
+          this.pageSinNucleo = data.page ?? this.pageSinNucleo;
+          this.limitSinNucleo = data.limit ?? this.limitSinNucleo;
+        }
+      } finally {
+        this.cargandoSinNucleo = false;
+      }
+    },
+    async irAPaginaSinNucleo(page: number) {
+      if (this.cargandoSinNucleo || page === this.pageSinNucleo || page < 1 || page > this.totalPagesSinNucleo) return;
+      this.pageSinNucleo = page;
+      await this.cargarUsuariosSinNucleo();
+    },
+    async cambiarLimiteSinNucleo(limite: number) {
+      if (this.cargandoSinNucleo || this.limitSinNucleo === limite) return;
+      this.limitSinNucleo = limite;
+      this.pageSinNucleo = 1;
+      await this.cargarUsuariosSinNucleo();
+    },
   },
   watch: {
     provincia_id() {
@@ -350,8 +393,9 @@ export default {
       this.cargarUsuarios();
     },
   },
-  async mounted() {
+    async mounted() {
     await this.cargarUsuarios();
+    await this.cargarUsuariosSinNucleo();
   },
 };
 </script>
@@ -398,18 +442,17 @@ export default {
               <TableHead>Oficina</TableHead>
               <TableHead>Municipio</TableHead>
               <TableHead>Provincia</TableHead>
-              <TableHead>Estado</TableHead>
               <TableHead class="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-if="cargando">
-              <TableCell colspan="8" class="text-center">
+              <TableCell colspan="7" class="text-center">
                 <Loader2 class="inline-block size-5 animate-spin text-muted-foreground" />
               </TableCell>
             </TableRow>
             <TableRow v-else-if="usuarios.length === 0">
-              <TableCell colspan="8" class="text-center text-muted-foreground">
+              <TableCell colspan="7" class="text-center text-muted-foreground">
                 No hay usuarios registrados.
               </TableCell>
             </TableRow>
@@ -525,6 +568,151 @@ export default {
     </CardContent>
   </Card>
 
+  <Card class="mt-6">
+    <CardHeader>
+      <CardTitle class="flex items-center gap-2">
+        <Users class="size-5" />
+        Usuarios sin núcleo asignado
+      </CardTitle>
+      <CardDescription>
+        {{ totalSinNucleo }} usuarios registrados · Mostrando {{ mostrandoSinNucleo }}
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+      <div class="w-full overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nombre</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Rol</TableHead>
+              <TableHead>Oficina</TableHead>
+              <TableHead>Municipio</TableHead>
+              <TableHead>Provincia</TableHead>
+              <TableHead class="text-right">Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-if="cargandoSinNucleo">
+              <TableCell colspan="7" class="text-center">
+                <Loader2 class="inline-block size-5 animate-spin text-muted-foreground" />
+              </TableCell>
+            </TableRow>
+            <TableRow v-else-if="usuariosSinNucleo.length === 0">
+              <TableCell colspan="7" class="text-center text-muted-foreground">
+                No hay usuarios sin núcleo asignado.
+              </TableCell>
+            </TableRow>
+            <TableRow v-else v-for="usuario in usuariosSinNucleo" :key="usuario.id">
+              <TableCell class="font-medium">
+                {{ usuario.nombre }} {{ usuario.apellido }}
+              </TableCell>
+              <TableCell>{{ usuario.email }}</TableCell>
+              <TableCell>{{ usuario.rol }}</TableCell>
+              <TableCell>{{ usuario.oficina ?? "-" }}</TableCell>
+              <TableCell>{{ usuario.municipio }}</TableCell>
+              <TableCell>{{ usuario.provincia }}</TableCell>
+              <TableCell class="text-right">
+                <div class="flex justify-end gap-2">
+                  <Button
+                    size="sm"
+                    :variant="usuario.activo ? 'destructive' : 'default'"
+                    :disabled="actualizandoEstado === usuario.id"
+                    @click="usuario.activo ? abrirDialogDesactivar(usuario) : activarUsuario(usuario)"
+                    :title="usuario.activo ? 'Desactivar usuario' : 'Activar usuario'"
+                  >
+                    <Loader2
+                      v-if="actualizandoEstado === usuario.id"
+                      class="size-4 animate-spin"
+                    />
+                    {{ usuario.activo ? "Desactivar" : "Activar" }}
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    class="text-muted-foreground hover:text-foreground"
+                    @click="abrirDialogRol(usuario)"
+                    title="Modificar rol"
+                  >
+                    <UserCog class="size-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    class="text-muted-foreground hover:text-foreground"
+                    @click="abrirCorreo(usuario)"
+                    title="Enviar correo"
+                  >
+                    <Mail class="size-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+      <div
+        class="mt-6 flex flex-col gap-4 border-t pt-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="text-sm text-muted-foreground">
+            Página {{ pageSinNucleo }} de {{ totalPagesSinNucleo }}
+          </div>
+          <div class="flex items-center gap-2 text-sm">
+            <span class="text-muted-foreground">Tamaño de página</span>
+            <Select
+              :model-value="String(limitSinNucleo)"
+              @update:model-value="(value) => cambiarLimiteSinNucleo(Number(value))"
+            >
+              <SelectTrigger class="w-20 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Resultados</SelectLabel>
+                  <SelectItem
+                    v-for="option in limitOptions"
+                    :key="option"
+                    :value="String(option)"
+                  >
+                    {{ option }}
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <Pagination
+          :page="pageSinNucleo"
+          :total="totalSinNucleo"
+          :sibling-count="1"
+          :items-per-page="limitSinNucleo"
+          @update:page="irAPaginaSinNucleo"
+        >
+          <PaginationContent v-slot="{ items }">
+            <PaginationFirst />
+            <PaginationPrevious />
+            <template
+              v-for="(item, index) in items"
+              :key="item.type + '-' + index"
+            >
+              <PaginationItem
+                v-if="item.type === 'page'"
+                :value="item.value"
+                :is-active="item.value === pageSinNucleo"
+              >
+                {{ item.value }}
+              </PaginationItem>
+              <PaginationEllipsis v-else-if="item.type === 'ellipsis'" />
+            </template>
+            <PaginationNext />
+            <PaginationLast />
+          </PaginationContent>
+        </Pagination>
+      </div>
+    </CardContent>
+  </Card>
+
   <Dialog v-model:open="dialogCorreoAbierto">
     <DialogContent class="max-w-lg">
       <DialogHeader>
@@ -622,11 +810,7 @@ export default {
       </div>
       <div v-else class="space-y-2">
         <Label for="rol-oficina">Oficina</Label>
-        <div class="flex flex-wrap gap-3">
-          <ProvinciaFiltro />
-          <MunicipioFiltro />
-          <OficinaFiltro />
-        </div>
+        <SelectorOficina v-model:oficina-id="rolOficinaId" />
         <div class="text-xs text-muted-foreground">
           Selecciona una provincia, municipio y oficina para asignarlo como
           registrador.
@@ -644,7 +828,7 @@ export default {
           class="gap-2"
           :disabled="
             actualizandoRol ||
-            (rolUsuario?.rol === 'Consumidor' && !oficina_id)
+            (rolUsuario?.rol === 'Consumidor' && !rolOficinaId)
           "
           @click="actualizarRol"
         >

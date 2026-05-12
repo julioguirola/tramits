@@ -8,6 +8,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Field,
   FieldDescription,
   FieldGroup,
@@ -26,6 +34,12 @@ export default {
     CardHeader,
     CardTitle,
     Button,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
     Field,
     FieldDescription,
     FieldGroup,
@@ -38,11 +52,19 @@ export default {
     email: string;
     pass_word: string;
     loading_iniciar: boolean;
+    dialogRecoveryOpen: boolean;
+    recoveryEmail: string;
+    loadingRecovery: boolean;
+    recoverySent: boolean;
   } {
     return {
       email: "",
       pass_word: "",
       loading_iniciar: false,
+      dialogRecoveryOpen: false,
+      recoveryEmail: "",
+      loadingRecovery: false,
+      recoverySent: false,
     };
   },
   methods: {
@@ -56,6 +78,23 @@ export default {
         router.push("/dashboard");
       }
       this.loading_iniciar = false;
+    },
+    abrirRecovery() {
+      this.recoveryEmail = "";
+      this.recoverySent = false;
+      this.dialogRecoveryOpen = true;
+    },
+    async enviarRecovery() {
+      if (!this.recoveryEmail.trim() || this.loadingRecovery) return;
+      this.loadingRecovery = true;
+      try {
+        await api.post("/password-recovery/solicitar", {
+          email: this.recoveryEmail.trim(),
+        });
+        this.recoverySent = true;
+      } finally {
+        this.loadingRecovery = false;
+      }
     },
   },
 };
@@ -89,6 +128,7 @@ export default {
               <a
                 href="#"
                 class="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+                @click.prevent="abrirRecovery"
               >
                 ¿Olvidaste tu contraseña?
               </a>
@@ -118,4 +158,47 @@ export default {
       </form>
     </CardContent>
   </Card>
+
+  <Dialog v-model:open="dialogRecoveryOpen">
+    <DialogContent class="max-w-sm">
+      <DialogHeader>
+        <DialogTitle>Restablecer contraseña</DialogTitle>
+        <DialogDescription>
+          Ingresa tu correo electrónico y te enviaremos un enlace para
+          restablecer tu contraseña.
+        </DialogDescription>
+      </DialogHeader>
+      <div v-if="recoverySent" class="py-4 text-sm text-green-600 font-medium">
+        Si el correo existe, recibirás un enlace para restablecer tu contraseña.
+      </div>
+      <div v-else class="space-y-4">
+        <Field>
+          <FieldLabel for="recovery-email">Correo electrónico</FieldLabel>
+          <Input
+            id="recovery-email"
+            type="email"
+            v-model="recoveryEmail"
+            placeholder="m@ejemplo.com"
+          />
+        </Field>
+      </div>
+      <DialogFooter class="gap-2">
+        <Button
+          variant="outline"
+          :disabled="loadingRecovery"
+          @click="dialogRecoveryOpen = false"
+        >
+          Cancelar
+        </Button>
+        <Button
+          v-if="!recoverySent"
+          :disabled="!recoveryEmail.trim() || loadingRecovery"
+          @click="enviarRecovery"
+        >
+          <Spinner v-if="loadingRecovery" />
+          {{ loadingRecovery ? "" : "Enviar enlace" }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>

@@ -346,3 +346,43 @@ pub async fn actualizar_rol_usuario(
         .await?;
     Ok(result.rows_affected())
 }
+
+pub async fn listar_usuarios_sin_nucleo(
+    db: &Pool<Postgres>,
+    limit: i64,
+    offset: i64,
+) -> Result<Vec<UsuarioListado>, Error> {
+    sqlx::query_as::<_, UsuarioListado>(
+        "select u.id, u.email, p.nombre, p.apellido, ur.nombre as rol,
+                u.activo,
+                o.nombre as oficina,
+                u.oficina_id,
+                m.nombre as municipio,
+                pr.nombre as provincia
+         from persona p
+         join usuario u on u.persona_id = p.id
+         join usuario_rol ur on ur.id = u.rol_id
+         left join municipio m on m.id = p.municipio_id
+         left join provincia pr on pr.id = m.provincia_id
+         left join oficina o on o.id = u.oficina_id
+         where p.nucleo_id is null
+         order by p.apellido, p.nombre
+         limit $1 offset $2;",
+    )
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(db)
+    .await
+}
+
+pub async fn contar_usuarios_sin_nucleo(db: &Pool<Postgres>) -> Result<i64, Error> {
+    let count: (i64,) = sqlx::query_as(
+        "select count(*)
+         from persona p
+         join usuario u on u.persona_id = p.id
+         where p.nucleo_id is null;",
+    )
+    .fetch_one(db)
+    .await?;
+    Ok(count.0)
+}
