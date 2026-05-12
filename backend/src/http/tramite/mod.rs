@@ -5,5 +5,6 @@ pub mod correo;
 pub mod gestionar;
 pub mod historial;
 pub mod historial_registrador;
+pub mod libreta;
 pub mod procesar;
 pub mod estadisticas;

@@ -4,7 +4,6 @@ use crate::repos::usuario::UsuarioJwt;
 
 #[derive(FromRow)]
 struct TramiteParaProcesar {
-    tipo_id: i32,
     estado_id: i32,
     registrador_id: Option<Uuid>,
     tramite_oficina: i32,
@@ -13,7 +12,6 @@ struct TramiteParaProcesar {
 
 pub enum ProcesarBajaError {
     NoEncontrado,
-    TipoNoSoportado,
     NoPendiente,
     YaAsignado,
     SinOficina,
@@ -27,7 +25,7 @@ pub async fn procesar_solicitud(
     tramite_id: Uuid,
 ) -> Result<(), ProcesarBajaError> {
     let tramite = sqlx::query_as::<_, TramiteParaProcesar>(
-        "select t.tipo_id, t.estado_id, t.registrador_id,
+        "select t.estado_id, t.registrador_id,
                 b.oficina_id as tramite_oficina,
                 u.oficina_id as registrador_oficina
          from tramite t
@@ -46,9 +44,6 @@ pub async fn procesar_solicitud(
         return Err(ProcesarBajaError::NoEncontrado);
     };
 
-    if tramite.tipo_id != 1 && tramite.tipo_id != 2 {
-        return Err(ProcesarBajaError::TipoNoSoportado);
-    }
     if tramite.estado_id != 1 {
         return Err(ProcesarBajaError::NoPendiente);
     }
@@ -69,7 +64,6 @@ pub async fn procesar_solicitud(
          set registrador_id = $1,
              estado_id = 2
          where id = $2
-           and tipo_id in (1, 2)
            and estado_id = 1
            and registrador_id is null;",
     )

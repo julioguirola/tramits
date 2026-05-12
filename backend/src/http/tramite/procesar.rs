@@ -55,15 +55,6 @@ pub async fn procesar_solicitud_h(
             })),
         )
             .into_response(),
-        Err(ProcesarBajaError::TipoNoSoportado) => (
-            StatusCode::BAD_REQUEST,
-            Js(json!(Ress::<u8> {
-                message: Respuesta::Warn.as_str(),
-                description: "Solo se pueden procesar solicitudes de alta o baja",
-                data: None
-            })),
-        )
-            .into_response(),
         Err(ProcesarBajaError::NoPendiente) => (
             StatusCode::CONFLICT,
             Js(json!(Ress::<u8> {

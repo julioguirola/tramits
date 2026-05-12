@@ -67,7 +67,8 @@ create table tramite_tipo (
 
 insert into tramite_tipo (id, nombre) values
 (1, 'Alta'),
-(2, 'Baja');
+(2, 'Baja'),
+(3, 'Libreta');
 
 create table tramite_estado (
     id int primary key,

@@ -62,6 +62,7 @@ async fn main() -> Result<(), sqlx::Error> {
     let routes_auth = Router::new()
         .route("/tramite/alta", post(tramite::alta::crear_alta_h))
         .route("/tramite/baja", post(tramite::baja::crear_baja_h))
+        .route("/tramite/libreta", post(tramite::libreta::crear_libreta_h))
         .route(
             "/tramite/{id}/procesar",
             post(tramite::procesar::procesar_solicitud_h),

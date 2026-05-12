@@ -232,7 +232,9 @@ async fn crear_registradores_por_oficina(
     for row in oficinas {
         let oficina_id: i32 = row.get("id");
 
-        let persona_id = persona_map.get(&oficina_id).ok_or(sqlx::Error::RowNotFound)?;
+        let persona_id = persona_map
+            .get(&oficina_id)
+            .ok_or(sqlx::Error::RowNotFound)?;
         let email = format!("registrador{}@seed.local", oficina_id);
 
         inserts += &format!(
@@ -248,7 +250,10 @@ async fn crear_registradores_por_oficina(
     Ok(())
 }
 
-async fn crear_usuarios_faltantes(pool: &Pool<Postgres>, config: &EnvConfig) -> Result<(), sqlx::Error> {
+async fn crear_usuarios_faltantes(
+    pool: &Pool<Postgres>,
+    config: &EnvConfig,
+) -> Result<(), sqlx::Error> {
     let personas = sqlx::query(
         "select p.id, p.nombre, p.apellido
          from persona p
@@ -314,7 +319,7 @@ async fn generar_tramites(pool: &Pool<Postgres>, cantidad: usize) -> Result<(), 
         let nucleo_id: i32 = persona_row.get("nucleo_id");
         let oficina_id: i32 = persona_row.get("oficina_id");
 
-        let tipo_id = rand::random_range::<i32, _>(1..=2);
+        let tipo_id = rand::random_range::<i32, _>(1..=3);
         let estado_id = rand::random_range::<i32, _>(1..=5);
 
         let dias_atras = rand::random_range::<i64, _>(0..365);

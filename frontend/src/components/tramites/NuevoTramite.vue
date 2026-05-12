@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import TramiteAlta from "@/components/tramites/TramiteAlta.vue";
 import TramiteBaja from "@/components/tramites/TramiteBaja.vue";
+import TramiteLibreta from "@/components/tramites/TramiteLibreta.vue";
 import { ClipboardList, Loader2, XCircle, Mail } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ export default {
     CardTitle,
     TramiteAlta,
     TramiteBaja,
+    TramiteLibreta,
     ClipboardList,
     Loader2,
     XCircle,
@@ -87,6 +89,16 @@ export default {
       }
       return this.bloqueaBaja
         ? "Ya tienes una solicitud de baja pendiente o en proceso."
+        : "";
+    },
+    bloqueaLibreta(): boolean {
+      return this.tramitesPendientesOEnProceso.some(
+        (tramite) => tramite.tipo === "Libreta",
+      );
+    },
+    mensajeBloqueoLibreta(): string {
+      return this.bloqueaLibreta
+        ? "Ya tienes una solicitud de libreta pendiente o en proceso."
         : "";
     },
     tramiteActivoConRegistrador(): any | null {
@@ -254,6 +266,11 @@ export default {
     <TramiteBaja
       :bloqueado="bloqueaBaja"
       :motivo-bloqueo="mensajeBloqueoBaja"
+      @created="refrescarTramites"
+    />
+    <TramiteLibreta
+      :bloqueado="bloqueaLibreta"
+      :motivo-bloqueo="mensajeBloqueoLibreta"
       @created="refrescarTramites"
     />
   </div>
