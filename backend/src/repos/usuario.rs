@@ -194,14 +194,15 @@ pub async fn listar_usuarios(
     provincia_id: Option<i32>,
     municipio_id: Option<i32>,
     oficina_id: Option<i32>,
+    search: Option<&str>,
 ) -> Result<Vec<UsuarioListado>, Error> {
     let mut query = String::from(
         "select u.id, u.email, p.nombre, p.apellido, ur.nombre as rol,
                 u.activo,
-                case when u.oficina_id is not null then o_reg.nombre else o_pers.nombre end as oficina,
+                coalesce(o_reg.nombre, o_pers.nombre) as oficina,
                 u.oficina_id,
-                case when u.oficina_id is not null then m_reg.nombre else m_pers.nombre end as municipio,
-                case when u.oficina_id is not null then pr_reg.nombre else pr_pers.nombre end as provincia
+                coalesce(m_reg.nombre, m_pers.nombre, pm.nombre) as municipio,
+                coalesce(pr_reg.nombre, pr_pers.nombre, prm.nombre) as provincia
          from usuario u
          join persona p on p.id = u.persona_id
          join usuario_rol ur on ur.id = u.rol_id
@@ -213,6 +214,8 @@ pub async fn listar_usuarios(
          left join oficina o_pers on o_pers.id = b.oficina_id
          left join municipio m_pers on m_pers.id = o_pers.municipio_id
          left join provincia pr_pers on pr_pers.id = m_pers.provincia_id
+         left join municipio pm on pm.id = p.municipio_id
+         left join provincia prm on prm.id = pm.provincia_id
          where 1=1",
     );
 
@@ -220,32 +223,29 @@ pub async fn listar_usuarios(
     let mut param_count = 1;
 
     if let Some(provincia) = provincia_id {
-        query.push_str(&format!(
-            " and ((u.oficina_id is not null and pr_reg.id = ${}) or (u.oficina_id is null and pr_pers.id = ${}))",
-            param_count, param_count + 1
-        ));
+        query.push_str(&format!(" and coalesce(pr_reg.id, pr_pers.id, prm.id) = ${}", param_count));
         let _ = args.add(provincia);
-        let _ = args.add(provincia);
-        param_count += 2;
+        param_count += 1;
     }
     if let Some(municipio) = municipio_id {
-        query.push_str(&format!(
-            " and ((u.oficina_id is not null and m_reg.id = ${}) or (u.oficina_id is null and m_pers.id = ${}))",
-            param_count, param_count + 1
-        ));
+        query.push_str(&format!(" and coalesce(m_reg.id, m_pers.id, pm.id) = ${}", param_count));
         let _ = args.add(municipio);
-        let _ = args.add(municipio);
-        param_count += 2;
+        param_count += 1;
     }
     if let Some(oficina) = oficina_id {
-        query.push_str(&format!(
-            " and ((u.oficina_id is not null and o_reg.id = ${}) or (u.oficina_id is null and o_pers.id = ${}))",
-            param_count, param_count + 1
-        ));
+        query.push_str(&format!(" and coalesce(o_reg.id, o_pers.id) = ${}", param_count));
         let _ = args.add(oficina);
-        let _ = args.add(oficina);
+        param_count += 1;
+    }
 
-        param_count += 2;
+    if let Some(term) = search {
+        let pattern = format!("%{}%", term);
+        query.push_str(&format!(
+            " and (p.nombre ilike ${} or p.apellido ilike ${} or u.email ilike ${})",
+            param_count, param_count, param_count
+        ));
+        let _ = args.add(pattern);
+        param_count += 1;
     }
 
     query.push_str(&format!(
@@ -266,6 +266,7 @@ pub async fn contar_usuarios(
     provincia_id: Option<i32>,
     municipio_id: Option<i32>,
     oficina_id: Option<i32>,
+    search: Option<&str>,
 ) -> Result<i64, Error> {
     let mut query = String::from(
         "select count(*)
@@ -280,36 +281,45 @@ pub async fn contar_usuarios(
          left join oficina o_pers on o_pers.id = b.oficina_id
          left join municipio m_pers on m_pers.id = o_pers.municipio_id
          left join provincia pr_pers on pr_pers.id = m_pers.provincia_id
+         left join municipio pm on pm.id = p.municipio_id
+         left join provincia prm on prm.id = pm.provincia_id
          where 1=1",
     );
     let mut args = sqlx::postgres::PgArguments::default();
     let mut param_count = 1;
 
     if let Some(provincia) = provincia_id {
-        query.push_str(&format!(
-            " and ((u.oficina_id is not null and pr_reg.id = ${}) or (u.oficina_id is null and pr_pers.id = ${}))",
-            param_count, param_count + 1
-        ));
+        query.push_str(&format!(" and coalesce(pr_reg.id, pr_pers.id, prm.id) = ${}", param_count));
         let _ = args.add(provincia);
-        let _ = args.add(provincia);
-        param_count += 2;
+        param_count += 1;
     }
     if let Some(municipio) = municipio_id {
-        query.push_str(&format!(
-            " and ((u.oficina_id is not null and m_reg.id = ${}) or (u.oficina_id is null and m_pers.id = ${}))",
-            param_count, param_count + 1
-        ));
+        query.push_str(&format!(" and coalesce(m_reg.id, m_pers.id, pm.id) = ${}", param_count));
         let _ = args.add(municipio);
-        let _ = args.add(municipio);
-        param_count += 2;
+        param_count += 1;
     }
     if let Some(oficina) = oficina_id {
+        query.push_str(&format!(" and coalesce(o_reg.id, o_pers.id) = ${}", param_count));
+        let _ = args.add(oficina);
+        param_count += 1;
+    }
+
+    if let Some(term) = search {
+        let pattern = format!("%{}%", term);
         query.push_str(&format!(
-            " and ((u.oficina_id is not null and o_reg.id = ${}) or (u.oficina_id is null and o_pers.id = ${}))",
-            param_count, param_count + 1
+            " and (p.nombre ilike ${} or p.apellido ilike ${} or u.email ilike ${})",
+            param_count, param_count, param_count
         ));
-        let _ = args.add(oficina);
-        let _ = args.add(oficina);
+        let _ = args.add(pattern);
+    }
+
+    if let Some(term) = search {
+        let pattern = format!("%{}%", term);
+        query.push_str(&format!(
+            " and (p.nombre ilike ${} or p.apellido ilike ${} or u.email ilike ${})",
+            param_count, param_count, param_count
+        ));
+        let _ = args.add(pattern);
     }
 
     query.push_str(";");

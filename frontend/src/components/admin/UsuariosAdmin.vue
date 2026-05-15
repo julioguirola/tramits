@@ -151,6 +151,8 @@ export default {
       pageSinNucleo: 1,
       limitSinNucleo: 10,
       totalSinNucleo: 0,
+      search: "",
+      searchTimeout: null as ReturnType<typeof setTimeout> | null,
     };
   },
   computed: {
@@ -195,6 +197,7 @@ export default {
             provincia_id: this.provincia_id ?? undefined,
             municipio_id: this.municipio_id ?? undefined,
             oficina_id: this.oficina_id ?? undefined,
+            search: this.search || undefined,
           },
         });
         if (res?.status === 200 && res.data?.data) {
@@ -228,6 +231,7 @@ export default {
         municipios: [],
         oficinas: [],
       });
+      this.search = "";
       this.filtrosKey += 1;
       this.page = 1;
       await this.cargarUsuarios();
@@ -392,6 +396,13 @@ export default {
       this.page = 1;
       this.cargarUsuarios();
     },
+    search(val) {
+      if (this.searchTimeout) clearTimeout(this.searchTimeout);
+      this.searchTimeout = setTimeout(() => {
+        this.page = 1;
+        this.cargarUsuarios();
+      }, 300);
+    },
   },
     async mounted() {
     await this.cargarUsuarios();
@@ -429,6 +440,13 @@ export default {
         <Button v-if="hayFiltrosActivos" variant="outline" @click="limpiarFiltros">
           Limpiar filtros
         </Button>
+      </div>
+      <div class="pt-4">
+        <Input
+          v-model="search"
+          placeholder="Buscar por nombre o correo..."
+          class="max-w-sm"
+        />
       </div>
     </CardHeader>
     <CardContent>

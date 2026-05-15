@@ -27,6 +27,7 @@ pub struct UsuariosQuery {
     pub provincia_id: Option<i32>,
     pub municipio_id: Option<i32>,
     pub oficina_id: Option<i32>,
+    pub search: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -399,6 +400,7 @@ pub async fn listar_usuarios_h(
         params.provincia_id,
         params.municipio_id,
         params.oficina_id,
+        params.search.as_deref(),
     )
     .await
     .unwrap_or(0);
@@ -409,6 +411,7 @@ pub async fn listar_usuarios_h(
         params.provincia_id,
         params.municipio_id,
         params.oficina_id,
+        params.search.as_deref(),
     )
     .await;
 

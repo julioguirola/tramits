@@ -20,7 +20,7 @@ pub async fn get_historial_finalizado_registrador(
     let offset = (page - 1) * limit;
 
     let total: i64 = sqlx::query_scalar(
-         "select count(*)
+        "select count(*)
           from tramite
           where registrador_id = $1
             and estado_id in (3, 4);",
@@ -30,7 +30,7 @@ pub async fn get_historial_finalizado_registrador(
     .await?;
 
     let tramites = sqlx::query_as::<_, TramiteHistorial>(
-         "select
+        "select
              t.id,
              tt.nombre as tipo,
              n.direccion as nucleo,
@@ -39,7 +39,8 @@ pub async fn get_historial_finalizado_registrador(
              u.email as registrador,
              te.nombre as estado,
              p.nombre as persona_nombre,
-             p.apellido as persona_apellido
+             p.apellido as persona_apellido,
+             u.id as registrador_id
           from tramite t
          join tramite_tipo tt on tt.id = t.tipo_id
          join tramite_estado te on te.id = t.estado_id
