@@ -29,6 +29,8 @@ Anteriormente, el proceso de alta o baja de núcleos familiares en Cuba requerí
 | Cache | Redis (deadpool-redis) |
 | Runtime | Docker |
 
+> **📖 Instrucciones detalladas** de instalación, configuración y despliegue en [INSTALL.md](INSTALL.md).
+
 ## Arquitectura
 
 ```
@@ -100,50 +102,11 @@ Entidades principales:
 
 ## Desarrollo local
 
-### Requisitos
+Ver [INSTALL.md#3-despliegue-en-desarrollo](INSTALL.md#3-despliegue-en-desarrollo).
 
-- Docker y Docker Compose
-- Bun (para el frontend)
-- Copiar `.env.example` a `.env` y completar los valores
+## Producción
 
-```bash
-cp .env.example .env
-```
-
-### Variables de entorno requeridas
-
-| Variable | Descripción |
-|----------|-------------|
-| `DB_HOST` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` / `DB_PORT` | Conexión a PostgreSQL |
-| `JWT_SECRET` | Secreto para firmar tokens JWT |
-| `REDIS_URL` | URL del pool Redis (ej. `redis://cache:6379`) |
-| `PORT` | Puerto del backend (ej. `3030`) |
-| `SPA_URL` | Origen permitido en CORS (ej. `http://localhost:5173`) |
-| `VITE_API_URL` | Base URL de la API para el frontend |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Credenciales del administrador inicial |
-| `CONSUMER_EMAIL` / `CONSUMER_PASSWORD` | Credenciales del consumidor de prueba |
-| `REGISTRAR_EMAIL` / `REGISTRAR_PASSWORD` | Credenciales del registrador de prueba |
-| `MIGRATE` | `true` ejecuta migration + seed al iniciar |
-| `ENVIRONMENT` | Nombre del entorno (dev/prod) |
-| `RUST_LOG` | Nivel de logging (ej. `TRACE`) |
-
-### Levantar
-
-```bash
-docker compose -f docker-compose.dev.yml --env-file .env up --build -d
-```
-
-Con `MIGRATE=true` la base de datos se inicializa automáticamente con datos de prueba y los tres usuarios seed.
-
-### Puertos en dev
-
-| Servicio | Puerto |
-|----------|--------|
-| Frontend | `5173` |
-| Backend | `3030` |
-| PostgreSQL | `5433` |
-| Redis | `6377` |
-| RedisInsight | `5540` |
+Ver [INSTALL.md#4-despliegue-en-producción](INSTALL.md#4-despliegue-en-producción).
 
 ## Comandos
 
